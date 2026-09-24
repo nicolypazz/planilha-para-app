@@ -142,3 +142,39 @@
     color: var(--color-foreground);
   }
 }
+
+/* Paleta da planilha FINANÇAS: navy #02022C, #2C294A, #4A4A75, lilás #B4B3C4, roxo #5B3F86 */
+:root {
+  --background: #02022c;
+  --foreground: #f4f3fa;
+  --card: #2c294a;
+  --card-foreground: #f4f3fa;
+  --popover: #2c294a;
+  --popover-foreground: #f4f3fa;
+  --primary: #5b3f86;
+  --primary-foreground: #ffffff;
+  --secondary: #4a4a75;
+  --secondary-foreground: #ffffff;
+  --muted: #1b1a3d;
+  --muted-foreground: #b4b3c4;
+  --accent: #4a4a75;
+  --accent-foreground: #ffffff;
+  --border: #4a4a75;
+  --input: #4a4a75;
+  --ring: #b4b3c4;
+  --chart-1: #8b6fc4;
+  --chart-2: #b4b3c4;
+  --chart-3: #5b3f86;
+  --chart-4: #7d7cb0;
+  --chart-5: #d8c9f5;
+  --success: #6fcf97;
+  --warning: #f2c94c;
+  --destructive: #eb5757;
+}
+@theme inline {
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-display: "Sora", sans-serif;
+  --font-sans: "Manrope", sans-serif;
+}
+body { font-family: var(--font-sans); }
