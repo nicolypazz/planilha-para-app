@@ -135,7 +135,7 @@ export function parcelas(list: Lancamento[], cfg: Config, hoje = new Date()): Pa
 
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const fmtDate = (d: Date | string) => (typeof d === "string" ? new Date(d + "T00:00") : d).toLocaleDateString("pt-BR");
-export const mesLabel = (m: string) => { const [y, mo] = m.split("-"); return new Date(+y, +mo - 1, 1).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }); };
+export const mesLabel = (m: string) => { const [y, mo] = m.split("-").map(Number); return new Date(y ?? 0, (mo ?? 1) - 1, 1).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }); };
 
 export function groupSum<T>(items: T[], key: (i: T) => string, val: (i: T) => number) {
   const m = new Map<string, number>();

@@ -20,9 +20,9 @@ export function LancamentoDialog({ open, onOpenChange, edit }: { open: boolean; 
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!f.responsavel || !f.data || !(f.valor > 0)) return toast.error("Preencha responsável, data e valor.");
-    if (custo && (!f.categoria || !f.pagamento)) return toast.error("Informe categoria e tipo de pagamento.");
-    if (!custo && !f.descricao) return toast.error("Informe a descrição da renda.");
+    if (!f.responsavel || !f.data || !(f.valor > 0)) { toast.error("Preencha responsável, data e valor."); return; }
+    if (custo && (!f.categoria || !f.pagamento)) { toast.error("Informe categoria e tipo de pagamento."); return; }
+    if (!custo && !f.descricao) { toast.error("Informe a descrição da renda."); return; }
     actions.save({ ...f, parcelas: custo ? Math.max(1, f.parcelas) : 1, categoria: custo ? f.categoria : "", pagamento: custo ? f.pagamento : "" });
     toast.success(edit ? "Lançamento atualizado" : "Lançamento salvo");
     onOpenChange(false);
@@ -30,12 +30,12 @@ export function LancamentoDialog({ open, onOpenChange, edit }: { open: boolean; 
 
   function onFile(file?: File) {
     if (!file) return;
-    if (file.size > 1_500_000) return toast.error("Arquivo muito grande (máx. 1,5 MB).");
+    if (file.size > 1_500_000) { toast.error("Arquivo muito grande (máx. 1,5 MB)."); return; }
     const r = new FileReader(); r.onload = () => up("anexo", r.result as string); r.readAsDataURL(file);
   }
 
   const Sel = ({ v, on, opts, ph }: { v: string; on: (s: string) => void; opts: string[]; ph: string }) => (
-    <Select value={v || undefined} onValueChange={on}>
+    <Select {...(v ? { value: v } : {})} onValueChange={on}>
       <SelectTrigger><SelectValue placeholder={ph} /></SelectTrigger>
       <SelectContent>{opts.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
     </Select>
@@ -73,7 +73,7 @@ export function LancamentoDialog({ open, onOpenChange, edit }: { open: boolean; 
           <div className="grid gap-1.5">
             <Label>Comprovante (imagem ou PDF)</Label>
             <Input type="file" accept="image/*,application/pdf" onChange={(e) => onFile(e.target.files?.[0])} />
-            {f.anexo && <button type="button" className="text-left text-xs text-muted-foreground underline" onClick={() => up("anexo", undefined)}>Remover anexo</button>}
+            {f.anexo && <button type="button" className="text-left text-xs text-muted-foreground underline" onClick={() => setF(({ anexo: _a, ...rest }) => rest)}>Remover anexo</button>}
           </div>
           <Button type="submit" size="lg">Salvar</Button>
         </form>
