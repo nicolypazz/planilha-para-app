@@ -14,7 +14,215 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      income_sources: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      installments: {
+        Row: {
+          created_at: string
+          data_pagamento: string | null
+          data_vencimento: string
+          id: string
+          mes_vencimento: string
+          numero_parcela: number
+          pago: boolean
+          quinzena: string
+          status: string
+          total_parcelas: number
+          transaction_id: string
+          valor_parcela: number
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento: string
+          id?: string
+          mes_vencimento: string
+          numero_parcela: number
+          pago?: boolean
+          quinzena: string
+          status?: string
+          total_parcelas: number
+          transaction_id: string
+          valor_parcela: number
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string
+          id?: string
+          mes_vencimento?: string
+          numero_parcela?: number
+          pago?: boolean
+          quinzena?: string
+          status?: string
+          total_parcelas?: number
+          transaction_id?: string
+          valor_parcela?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dia_fechamento: number | null
+          dia_vencimento: number | null
+          id: string
+          nome: string
+          utiliza_fechamento: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dia_fechamento?: number | null
+          dia_vencimento?: number | null
+          id?: string
+          nome: string
+          utiliza_fechamento?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dia_fechamento?: number | null
+          dia_vencimento?: number | null
+          id?: string
+          nome?: string
+          utiliza_fechamento?: boolean
+        }
+        Relationships: []
+      }
+      responsible_users: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          data_compra: string | null
+          data_lancamento: string
+          data_pagamento: string | null
+          data_recebimento: string | null
+          descricao: string
+          id: string
+          numero_parcelas: number
+          pago: boolean
+          parcelado: boolean
+          responsavel: string
+          tipo_gasto: string | null
+          tipo_movimentacao: string
+          tipo_pagamento: string | null
+          tipo_renda: string | null
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          data_compra?: string | null
+          data_lancamento?: string
+          data_pagamento?: string | null
+          data_recebimento?: string | null
+          descricao?: string
+          id?: string
+          numero_parcelas?: number
+          pago?: boolean
+          parcelado?: boolean
+          responsavel: string
+          tipo_gasto?: string | null
+          tipo_movimentacao: string
+          tipo_pagamento?: string | null
+          tipo_renda?: string | null
+          updated_at?: string
+          valor_total: number
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          data_compra?: string | null
+          data_lancamento?: string
+          data_pagamento?: string | null
+          data_recebimento?: string | null
+          descricao?: string
+          id?: string
+          numero_parcelas?: number
+          pago?: boolean
+          parcelado?: boolean
+          responsavel?: string
+          tipo_gasto?: string | null
+          tipo_movimentacao?: string
+          tipo_pagamento?: string | null
+          tipo_renda?: string | null
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
