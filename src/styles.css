@@ -178,3 +178,47 @@
   --font-sans: "Manrope", sans-serif;
 }
 body { font-family: var(--font-sans); }
+
+/* Identidade do dashboard de referência: navy profundo + cores por significado */
+:root {
+  --background: #050823;
+  --card: #0c1235;
+  --popover: #0c1235;
+  --muted: #0a0f2e;
+  --secondary: #1a2150;
+  --accent: #1f2760;
+  --border: #232b63;
+  --input: #2a3370;
+  --primary: #7c5cff;
+  --income: #2dd4bf;
+  --expense: #ec4899;
+  --balance: #38bdf8;
+  --paid: #34d399;
+  --pending: #fbbf24;
+  --overdue: #f43f5e;
+  --highlight: #a78bfa;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --destructive: #f43f5e;
+}
+@theme inline {
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-balance: var(--balance);
+  --color-paid: var(--paid);
+  --color-pending: var(--pending);
+  --color-overdue: var(--overdue);
+  --color-highlight: var(--highlight);
+}
+body {
+  background-image: radial-gradient(1200px 600px at 10% -10%, color-mix(in oklab, var(--highlight) 14%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, color-mix(in oklab, var(--balance) 10%, transparent), transparent 60%);
+  background-attachment: fixed;
+}
+.panel {
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(160deg, color-mix(in oklab, var(--card) 92%, var(--highlight)), var(--card));
+  box-shadow: 0 10px 40px -20px color-mix(in oklab, var(--highlight) 45%, transparent);
+}
+.glow { box-shadow: 0 0 24px -6px var(--glow, var(--highlight)); }
