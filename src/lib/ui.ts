@@ -5,6 +5,7 @@ export type LancamentoDefaults = {
   tipo_movimentacao?: "Renda" | "Custo";
   tipo_pagamento?: string | null;
   data_compra?: string | null;
+  primeiro_vencimento?: string | null;
 };
 
 let state: { open: boolean; edit: Tx | null; defaults: LancamentoDefaults | null } = { open: false, edit: null, defaults: null };
