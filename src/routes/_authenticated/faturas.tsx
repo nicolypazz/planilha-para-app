@@ -73,7 +73,7 @@ function Page() {
                 <div className="min-w-48 flex-1"><div className="font-display font-semibold">{inv.method}</div><div className="text-sm text-muted-foreground">Vencimento {fmtDate(inv.dueDate)} · {uniqueTx} {uniqueTx === 1 ? "compra" : "compras"}</div></div>
                 <div className="text-right"><div className="font-display text-xl font-bold">{brl(total)}</div><div className={`text-xs font-semibold ${paid ? "text-paid" : "text-pending"}`}>{paid ? "✓ Fatura paga" : "● Fatura em aberto"}</div></div>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={() => openLancamentoComDefaults({ tipo_movimentacao: "Custo", tipo_pagamento: inv.method })}><Plus className="mr-1 h-4 w-4" /> Novo lançamento</Button>
+                  <Button variant="outline" size="sm" onClick={() => openLancamentoComDefaults({ tipo_movimentacao: "Custo", tipo_pagamento: inv.method, data_compra: inv.dueDate, primeiro_vencimento: inv.dueDate })}><Plus className="mr-1 h-4 w-4" /> Novo lançamento</Button>
                   <Button size="sm" disabled={saving === key} onClick={() => togglePaid(inv)}>{saving === key ? "Salvando…" : paid ? "Desfazer pagamento" : "Pagar fatura"}</Button>
                   <Button variant="ghost" size="icon" aria-label="Expandir" onClick={() => setOpen({ ...open, [key]: !isOpen })}><ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} /></Button>
                 </div>
