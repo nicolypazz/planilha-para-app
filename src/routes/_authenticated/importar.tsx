@@ -75,79 +75,6 @@ function money(v: unknown): number {
 }
 function bool(v: unknown) { return ["sim", "s", "true", "1", "yes"].includes(norm(v)); }
 
-function cleanStatementText(text: string): string {
-  const balanceTerms = /saldo\s+(do\s+dia|anterior|disponivel|bloqueado|final)|total\s+(do\s+dia|de\s+entradas|de\s+saidas)/i;
-  const dateRe = /(?:^|\s)(\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)(?:\s|$)/;
-  const moneyPattern = /[-+]?R?\$?\s?\d{1,3}(?:\.\d{3})*,\d{2}|[-+]?R?\$?\s?\d+,\d{2}/;
-  const moneyRe = /[-+]?R?\$?\s?\d{1,3}(?:\.\d{3})*,\d{2}|[-+]?R?\$?\s?\d+,\d{2}/g;
-  const lines = text.split(/\r?\n/).map(x => x.replace(/\s+/g, " ").trim()).filter(Boolean);
-  const blocks: string[] = [];
-  let current = "";
-  for (const line of lines) {
-    if (balanceTerms.test(line)) continue;
-    if (dateRe.test(line)) {
-      if (current) blocks.push(current);
-      current = line;
-    } else if (current) current += " " + line;
-    moneyRe.lastIndex = 0;
-  }
-  if (current) blocks.push(current);
-  return blocks.filter(block => dateRe.test(block) && moneyPattern.test(block)).map(block => {
-    const amounts = block.match(moneyRe) ?? [];
-    return amounts.length > 1 ? block + " [ATENÇÃO: se houver dois valores monetários, o último normalmente é saldo acumulado; não lançar saldo como transação.]" : block;
-  }).join("\n");
-}
-
-function extractPdfTextFallback(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const raw = new TextDecoder("latin1").decode(bytes);
-  const chunks = raw.match(/BT[\\s\\S]*?ET/g) ?? [];
-  const text = chunks.flatMap(chunk =>
-    [...chunk.matchAll(/\\((?:\\\\.|[^\\)])*\\)/g)].map(match => {
-      const value = match[0].slice(1, -1);
-      return value.replace(/\\([\\\\()])/g, "$1").replace(/\\n/g, " ");
-    }),
-  );
-  return text.join(" ").replace(/\\s+/g, " ").trim();
-}
-
-async function extractPdfText(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  try {
-    const pdfjs = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs");
-    pdfjs.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.mjs";
-    const pdf = await pdfjs.getDocument({ data: new Uint8Array(buffer), enableScripting: false }).promise;
-    const pages: string[] = [];
-    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-      const page = await pdf.getPage(pageNumber);
-      const content = await page.getTextContent();
-      const items = content.items
-        .filter((item: { str?: string }) => item.str?.trim())
-        .map((item: { str?: string; transform?: number[] }) => ({
-          str: item.str ?? "",
-          x: item.transform?.[4] ?? 0,
-          y: item.transform?.[5] ?? 0,
-        }))
-        .sort((a, b) => b.y - a.y || a.x - b.x);
-      const lines: { y: number; parts: { x: number; str: string }[] }[] = [];
-      for (const item of items) {
-        const line = lines.find(x => Math.abs(x.y - item.y) <= 3);
-        if (line) line.parts.push({ x: item.x, str: item.str });
-        else lines.push({ y: item.y, parts: [{ x: item.x, str: item.str }] });
-      }
-      pages.push(lines.map(line => line.parts.sort((a, b) => a.x - b.x).map(x => x.str).join(" ")).join("\n"));
-    }
-    const extracted = pages.join("\n").trim();
-    if (extracted) return extracted;
-  } catch {
-    // Fall back to a local byte-level text extraction for simple text PDFs.
-  }
-
-  const fallback = extractPdfTextFallback(buffer);
-  if (!fallback) throw new Error("Não foi possível extrair texto deste PDF. Se for um PDF escaneado, será necessário OCR.");
-  return fallback;
-}
-
 function toDraft(r: Raw, map: Record<Field, string>, mode: ImportMode): TxDraft {
   const get = (f: Field) => map[f] ? r[map[f]] : "";
   const renda = mode === "renda";
@@ -195,7 +122,6 @@ function Page() {
   const [extrato, setExtrato] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [pdfName, setPdfName] = useState("");
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [edits, setEdits] = useState<Record<number, Partial<Pick<TxDraft, "categoria" | "responsavel" | "valor_total">>>>({});
 
@@ -278,14 +204,6 @@ function Page() {
     finally { setAiBusy(false); }
   }
 
-  async function analyzePdf(file: File) {
-    setAiBusy(true); setPdfName(file.name);
-    try {
-      const extracted = await extractPdfText(file);
-      setExtrato(extracted);
-      await analyzeStatement(extracted);
-    } catch (e) { setAiBusy(false); toast.error(e instanceof Error ? e.message : "Não foi possível ler o PDF."); }
-  }
   async function confirmImport() {
     if (!mappingReady) return toast.error("Mapeie as colunas obrigatórias do modelo selecionado antes de confirmar.");
     if (!valid.length) return toast.error("Não há lançamentos válidos para importar.");
@@ -341,10 +259,8 @@ function Page() {
 
     {tab === "ia" && <section className="panel space-y-3 p-5">
       <div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-highlight"/><h2 className="font-display font-semibold">Extrato bancário com IA</h2></div>
-      <p className="text-sm text-muted-foreground">Envie o PDF diretamente ou cole o texto. Saldos são filtrados e os lançamentos ficam em prévia antes de qualquer gravação.</p>
-      <input id="statement-pdf" type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => e.target.files?.[0] && analyzePdf(e.target.files[0])}/>
-      <label htmlFor="statement-pdf" className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border p-4 hover:bg-muted/50"><Upload className="h-5 w-5 text-highlight"/><span><b>📄 Selecionar PDF do extrato</b><span className="ml-2 text-xs text-muted-foreground">{pdfName || "PDF bancário com texto"}</span></span></label>
-      <Textarea value={extrato} onChange={e => setExtrato(e.target.value)} placeholder="Ou cole aqui o texto do extrato bancário..." className="min-h-40 font-mono text-xs"/>
+      <p className="text-sm text-muted-foreground">Cole o texto do extrato bancário. A IA identifica as movimentações e mostra tudo em prévia antes de qualquer gravação.</p>
+      <Textarea value={extrato} onChange={e => setExtrato(e.target.value)} placeholder="Cole aqui o texto do extrato bancário..." className="min-h-40 font-mono text-xs"/>
       <Button onClick={() => analyzeStatement(extrato)} disabled={aiBusy || !extrato.trim()}>{aiBusy ? "Analisando…" : "Extrair e categorizar com IA"} <Sparkles /></Button>
     </section>}
 
@@ -685,9 +601,6 @@ function Page() {
     {tab === "ia" && <section className="panel space-y-3 p-5">
       <div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-highlight"/><h2 className="font-display font-semibold">Extrato bancário com IA</h2></div>
       <p className="text-sm text-muted-foreground">Envie o PDF diretamente ou cole o texto. Saldos são filtrados e os lançamentos ficam em prévia antes de qualquer gravação.</p>
-      <input id="statement-pdf" type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => e.target.files?.[0] && analyzePdf(e.target.files[0])}/>
-      <label htmlFor="statement-pdf" className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border p-4 hover:bg-muted/50"><Upload className="h-5 w-5 text-highlight"/><span><b>📄 Selecionar PDF do extrato</b><span className="ml-2 text-xs text-muted-foreground">{pdfName || "Anexe o arquivo PDF bancário"}</span></span></label>
-      <Textarea value={extrato} onChange={e => setExtrato(e.target.value)} placeholder="Ou cole aqui o texto do extrato bancário..." className="min-h-40 font-mono text-xs"/>
       <Button onClick={() => analyzeStatement(extrato)} disabled={aiBusy || !extrato.trim()}>{aiBusy ? "Analisando…" : "Extrair e categorizar com IA"} <Sparkles /></Button>
     </section>}
 
