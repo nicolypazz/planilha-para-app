@@ -91,6 +91,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes'
     | '/_authenticated/transacoes'
     | '/_authenticated/importar'
+    | '/_authenticated/faturas'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
