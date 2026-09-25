@@ -17,6 +17,8 @@ export interface TxCalcInput {
   data_recebimento?: string | null;
   valor_total: number;
   numero_parcelas: number;
+  /** Quando informado, força a primeira parcela a cair nesta fatura. */
+  primeiro_vencimento?: string | null;
 }
 export interface InstCalc {
   numero_parcela: number;
@@ -75,7 +77,9 @@ export function computeInstallments(tx: TxCalcInput, method?: MethodRule | null)
   const out: InstCalc[] = [];
   for (let k = 1; k <= n; k++) {
     let venc: string;
-    if (card) {
+    if (tx.primeiro_vencimento) {
+      venc = addMonths(tx.primeiro_vencimento, k - 1);
+    } else if (card) {
       const { y, m0, d } = parseIso(tx.data_compra);
       const offset = d > card.dia_fechamento! ? 1 : 0;
       venc = ymd(y, m0 + offset + k - 1, card.dia_vencimento!);
