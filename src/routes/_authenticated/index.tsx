@@ -157,7 +157,17 @@ function Dashboard() {
           <BarList items={calc.cat} />
         </Panel>
         <Panel title="Quinzena"><Donut items={calc.quinz} colors={["var(--balance)", "var(--expense)"]} /></Panel>
-        <Panel title="Tipo de Pagamento"><Donut items={calc.pag} colors={["var(--highlight)", "var(--balance)", "var(--income)", "var(--pending)", "var(--expense)", "#818cf8", "#22d3ee"]} /></Panel>
+        <Panel title="Tipo de Pagamento"><Donut items={calc.pag} colors={calc.pag.map((item) => {
+          const nome = item.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+          if (nome.includes("itau") || nome.includes("itaú")) return "#f59e0b";
+          if (nome.includes("assai") || nome.includes("assaí")) return "#3b82f6";
+          if (nome.includes("besni")) return "#eab308";
+          if (nome.includes("shoppe") || nome.includes("shopee")) return "#22c55e";
+          if (nome.includes("pix")) return "#06b6d4";
+          if (nome.includes("debito") || nome.includes("débito")) return "#8b5cf6";
+          if (nome.includes("dinheiro")) return "#14b8a6";
+          return "#64748b";
+        })} /></Panel>
         <Panel title="Pagamentos e Vencimentos">
           <div className="space-y-3 pt-1">
             {([["Pagos", calc.pago, "var(--paid)", CheckCircle2], ["No prazo", calc.pend, "var(--pending)", Clock], ["Atrasado", calc.atras, "var(--overdue)", AlertTriangle]] as const).map(([l, v, c, I]) => {
