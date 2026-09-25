@@ -98,32 +98,54 @@ function cleanStatementText(text: string): string {
   }).join("\n");
 }
 
+function extractPdfTextFallback(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const raw = new TextDecoder("latin1").decode(bytes);
+  const chunks = raw.match(/BT[\\s\\S]*?ET/g) ?? [];
+  const text = chunks.flatMap(chunk =>
+    [...chunk.matchAll(/\\((?:\\\\.|[^\\)])*\\)/g)].map(match => {
+      const value = match[0].slice(1, -1);
+      return value.replace(/\\([\\\\()])/g, "$1").replace(/\\n/g, " ");
+    }),
+  );
+  return text.join(" ").replace(/\\s+/g, " ").trim();
+}
+
 async function extractPdfText(file: File): Promise<string> {
-  const pdfjs = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs");
-  pdfjs.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.mjs";
-  const buffer = new Uint8Array(await file.arrayBuffer());
-  const pdf = await pdfjs.getDocument({ data: buffer, enableScripting: false }).promise;
-  const pages: string[] = [];
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-    const page = await pdf.getPage(pageNumber);
-    const content = await page.getTextContent();
-    const items = content.items
-      .filter((item: { str?: string }) => item.str?.trim())
-      .map((item: { str?: string; transform?: number[] }) => ({
-        str: item.str ?? "",
-        x: item.transform?.[4] ?? 0,
-        y: item.transform?.[5] ?? 0,
-      }))
-      .sort((a, b) => b.y - a.y || a.x - b.x);
-    const lines: { y: number; parts: { x: number; str: string }[] }[] = [];
-    for (const item of items) {
-      const line = lines.find(x => Math.abs(x.y - item.y) <= 3);
-      if (line) line.parts.push({ x: item.x, str: item.str });
-      else lines.push({ y: item.y, parts: [{ x: item.x, str: item.str }] });
+  const buffer = await file.arrayBuffer();
+  try {
+    const pdfjs = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.mjs";
+    const pdf = await pdfjs.getDocument({ data: new Uint8Array(buffer), enableScripting: false }).promise;
+    const pages: string[] = [];
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+      const items = content.items
+        .filter((item: { str?: string }) => item.str?.trim())
+        .map((item: { str?: string; transform?: number[] }) => ({
+          str: item.str ?? "",
+          x: item.transform?.[4] ?? 0,
+          y: item.transform?.[5] ?? 0,
+        }))
+        .sort((a, b) => b.y - a.y || a.x - b.x);
+      const lines: { y: number; parts: { x: number; str: string }[] }[] = [];
+      for (const item of items) {
+        const line = lines.find(x => Math.abs(x.y - item.y) <= 3);
+        if (line) line.parts.push({ x: item.x, str: item.str });
+        else lines.push({ y: item.y, parts: [{ x: item.x, str: item.str }] });
+      }
+      pages.push(lines.map(line => line.parts.sort((a, b) => a.x - b.x).map(x => x.str).join(" ")).join("\n"));
     }
-    pages.push(lines.map(line => line.parts.sort((a, b) => a.x - b.x).map(x => x.str).join(" ")).join("\n"));
+    const extracted = pages.join("\n").trim();
+    if (extracted) return extracted;
+  } catch {
+    // Fall back to a local byte-level text extraction for simple text PDFs.
   }
-  return pages.join("\n");
+
+  const fallback = extractPdfTextFallback(buffer);
+  if (!fallback) throw new Error("Não foi possível extrair texto deste PDF. Se for um PDF escaneado, será necessário OCR.");
+  return fallback;
 }
 
 function toDraft(r: Raw, map: Record<Field, string>, mode: ImportMode): TxDraft {
@@ -664,7 +686,7 @@ function Page() {
       <div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-highlight"/><h2 className="font-display font-semibold">Extrato bancário com IA</h2></div>
       <p className="text-sm text-muted-foreground">Envie o PDF diretamente ou cole o texto. Saldos são filtrados e os lançamentos ficam em prévia antes de qualquer gravação.</p>
       <input id="statement-pdf" type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => e.target.files?.[0] && analyzePdf(e.target.files[0])}/>
-      <label htmlFor="statement-pdf" className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border p-4 hover:bg-muted/50"><Upload className="h-5 w-5 text-highlight"/><span><b>Selecionar PDF do extrato</b><span className="ml-2 text-xs text-muted-foreground">{pdfName || "PDF bancário com texto"}</span></span></label>
+      <label htmlFor="statement-pdf" className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border p-4 hover:bg-muted/50"><Upload className="h-5 w-5 text-highlight"/><span><b>📄 Selecionar PDF do extrato</b><span className="ml-2 text-xs text-muted-foreground">{pdfName || "Anexe o arquivo PDF bancário"}</span></span></label>
       <Textarea value={extrato} onChange={e => setExtrato(e.target.value)} placeholder="Ou cole aqui o texto do extrato bancário..." className="min-h-40 font-mono text-xs"/>
       <Button onClick={() => analyzeStatement(extrato)} disabled={aiBusy || !extrato.trim()}>{aiBusy ? "Analisando…" : "Extrair e categorizar com IA"} <Sparkles /></Button>
     </section>}
