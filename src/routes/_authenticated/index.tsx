@@ -65,7 +65,17 @@ function Dashboard() {
       cat: sumBy(custos, (x) => x.tx.categoria || "Sem categoria"),
       quinz: sumBy(custos, (x) => x.inst.quinzena).sort((a, b) => a.name.localeCompare(b.name)),
       pag: sumBy(custos, (x) => x.tx.tipo_pagamento || "—"),
-      natasha: sumBy(\n        data.rows.filter((x) => {\n          if (x.mov !== "Renda") return false;\n          const resp = x.tx.responsavel.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();\n          const tipo = String(x.tx.tipo_renda ?? "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();\n          const dataRenda = (x.tx.data_recebimento ?? x.tx.data_compra ?? "").slice(0, 7);\n          const dentroDoPeriodo = dataRenda >= r[0] && dataRenda <= r[1];\n          return dentroDoPeriodo && resp === "natasha" && (tipo === "variavel" || tipo === "");\n        }),\n        (x) => x.tx.descricao?.trim() || x.tx.categoria?.trim() || x.tx.tipo_renda?.trim() || "Outros"\n      ),
+      natasha: sumBy(
+        data.rows.filter((x) => {
+          if (x.mov !== "Renda") return false;
+          const resp = x.tx.responsavel.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();
+          const tipo = String(x.tx.tipo_renda ?? "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();
+          const dataRenda = (x.tx.data_recebimento ?? x.tx.data_compra ?? "").slice(0, 7);
+          const dentroDoPeriodo = dataRenda >= r[0] && dataRenda <= r[1];
+          return dentroDoPeriodo && resp === "natasha" && (tipo === "variavel" || tipo === "");
+        }),
+        (x) => x.tx.descricao?.trim() || x.tx.categoria?.trim() || x.tx.tipo_renda?.trim() || "Outros"
+      ),
       porResp: data.responsaveis.map((u) => {
         const rs = rendas.filter((x) => x.tx.responsavel === u.nome);
         return { nome: u.nome, fixa: total(rs.filter((x) => x.tx.tipo_renda === "Fixa")), variavel: total(rs.filter((x) => x.tx.tipo_renda !== "Fixa")) };
