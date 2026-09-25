@@ -38,7 +38,8 @@ export function LancamentoDialog() {
     if (edit) {
       setF({ ...edit, tipo_movimentacao: edit.tipo_movimentacao as Mov, valor_total: Number(edit.valor_total), descricao: edit.descricao ?? "" });
       setParcelado(edit.numero_parcelas > 1);
-    } else if (defaults) { setF({ ...blank(defaults.tipo_movimentacao ?? "Custo"), ...defaults }); setParcelado(false); }\n    else { setF(null); setParcelado(false); }
+    } else if (defaults) { setF({ ...blank(defaults.tipo_movimentacao ?? "Custo"), ...defaults }); setParcelado(false); }
+    else { setF(null); setParcelado(false); }
   }, [open, edit]);
 
   const up = <K extends keyof TxDraft>(k: K, v: TxDraft[K]) => setF((p) => (p ? { ...p, [k]: v } : p));
