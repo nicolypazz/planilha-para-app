@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowDownCircle, CheckCircle2, Clock, Coins, CreditCard, Plus, Wallet, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, CheckCircle2, Clock, Coins, CreditCard, Plus, Wallet, Check, type LucideIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, defaultPeriod, inRange, range, type Period } from "@/components/PeriodFilter";
-import { brl, fmtDate, mesLabel, txDate, txLabel, useFin, type Row } from "@/lib/data";
+import { brl, fmtDate, mesLabel, setPaid, txDate, txLabel, useFin, useRefresh, type Row } from "@/lib/data";
 import { monthsBetween, todayIso } from "@/lib/engine";
 import { openLancamento } from "@/lib/ui";
 
@@ -37,6 +37,8 @@ function Dashboard() {
   const { data, isLoading, error } = useFin();
   const [p, setP] = useState<Period>(defaultPeriod);
   const [resp, setResp] = useState("all");
+  const refresh = useRefresh();
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   const calc = useMemo(() => {
     if (!data) return null;
@@ -84,6 +86,10 @@ function Dashboard() {
   if (error) return <div className="panel p-6 text-overdue">Erro ao carregar: {(error as Error).message}</div>;
   if (isLoading || !calc || !data) return <div className="p-8 text-muted-foreground">Carregando…</div>;
   const saldo = calc.renda - calc.custo;
+  const hoje = todayIso();
+  const limite = (() => { const d = new Date(hoje + "T12:00:00"); d.setDate(d.getDate() + 5); return d.toISOString().slice(0, 10); })();
+  const proximos = data.rows.filter((x) => x.mov === "Custo" && (resp === "all" || x.tx.responsavel === resp) && x.status === "Pendente" && x.inst.data_vencimento >= hoje && x.inst.data_vencimento <= limite).sort((a, b) => a.inst.data_vencimento.localeCompare(b.inst.data_vencimento));
+  const marcarPago = async (row: Row) => { setPayingId(row.inst.id); try { await setPaid(row.inst, true, hoje, row.tx); await refresh(); } finally { setPayingId(null); } };
 
   return (
     <div className="mx-auto max-w-7xl space-y-4">
@@ -109,6 +115,26 @@ function Dashboard() {
         </div>
       </div>
 
+      {proximos.length > 0 && (
+        <section className="panel overflow-hidden border-amber-500/40 bg-amber-500/5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-500" /><div><h2 className="font-display font-semibold">Pagamentos Próximos do Vencimento</h2><p className="text-xs text-muted-foreground">Pendentes para hoje e os próximos 5 dias.</p></div></div>
+            <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-600">{proximos.length} parcela{proximos.length === 1 ? "" : "s"}</span>
+          </div>
+          <div className="divide-y divide-border">
+            {proximos.map((x) => {
+              const dias = Math.round((new Date(x.inst.data_vencimento + "T12:00:00").getTime() - new Date(hoje + "T12:00:00").getTime()) / 86400000);
+              const urgente = dias <= 1;
+              return <div key={x.inst.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgente ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}><Clock className="h-4 w-4" /></div>
+                <div className="min-w-40 flex-1"><div className="font-semibold">{txLabel(x.tx)}</div><div className="text-xs text-muted-foreground">{x.tx.responsavel} · {x.tx.tipo_pagamento || "—"} · parcela {x.inst.numero_parcela}/{x.inst.total_parcelas}</div></div>
+                <div className="text-right"><div className="font-bold text-expense">{brl(x.valor)}</div><div className={`text-xs font-semibold ${urgente ? "text-red-500" : "text-amber-600"}`}>{dias === 0 ? "vence hoje" : dias === 1 ? "vence amanhã" : "vence em " + dias + " dias"} · {fmtDate(x.inst.data_vencimento)}</div></div>
+                <button disabled={payingId === x.inst.id} onClick={() => marcarPago(x)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"><Check className="h-4 w-4" />{payingId === x.inst.id ? "Salvando…" : "Marcar como Pago"}</button>
+              </div>;
+            })}
+          </div>
+        </section>
+      )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi icon={Coins} label="Renda" value={calc.renda} color="var(--income)" sub={`Fixa ${brl(calc.fixa)} · Var. ${brl(calc.variavel)}`} />
         <Kpi icon={ArrowDownCircle} label="Custos" value={calc.custo} color="var(--expense)" />
