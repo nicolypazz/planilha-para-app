@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, Circle, CreditCard, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { brl, fmtDate, setInvoicePaid, useFin, useRefresh, type Inst } from "@/lib/data";
+import { brl, fmtDate, setInvoicePaid, useFin, useRefresh, type Inst, type Tx } from "@/lib/data";
 import { statusOf, todayIso } from "@/lib/engine";
 import { openLancamentoComDefaults } from "@/lib/ui";
 
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/faturas")({
 type Invoice = {
   method: string;
   dueDate: string;
-  insts: { inst: Inst; tx: NonNullable<ReturnType<typeof useFin>["data"]>["txs"][number] }[];
+  insts: { inst: Inst; tx: Tx }[];
 };
 
 function Page() {
