@@ -65,7 +65,7 @@ function Dashboard() {
       cat: sumBy(custos, (x) => x.tx.categoria || "Sem categoria"),
       quinz: sumBy(custos, (x) => x.inst.quinzena).sort((a, b) => a.name.localeCompare(b.name)),
       pag: sumBy(custos, (x) => x.tx.tipo_pagamento || "—"),
-      natasha: sumBy(data.rows.filter((x) => inRange(x.inst.mes_vencimento, r) && x.mov === "Renda" && x.tx.responsavel === "Natasha" && x.tx.tipo_renda === "Variável"), (x) => x.tx.descricao || "Outros"),
+      natasha: sumBy(rendas.filter((x) => x.tx.responsavel.trim().toLowerCase() === "natasha" && String(x.tx.tipo_renda ?? "").trim().toLowerCase() === "variável"), (x) => x.tx.descricao?.trim() || "Outros"),
       porResp: data.responsaveis.map((u) => {
         const rs = rendas.filter((x) => x.tx.responsavel === u.nome);
         return { nome: u.nome, fixa: total(rs.filter((x) => x.tx.tipo_renda === "Fixa")), variavel: total(rs.filter((x) => x.tx.tipo_renda !== "Fixa")) };
