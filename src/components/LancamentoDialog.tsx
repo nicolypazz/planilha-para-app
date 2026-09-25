@@ -38,9 +38,11 @@ export function LancamentoDialog() {
     if (edit) {
       setF({ ...edit, tipo_movimentacao: edit.tipo_movimentacao as Mov, valor_total: Number(edit.valor_total), descricao: edit.descricao ?? "" });
       setParcelado(edit.numero_parcelas > 1);
-    } else if (defaults) { setF({ ...blank(defaults.tipo_movimentacao ?? "Custo"), ...defaults }); setParcelado(false); }
-    else { setF(null); setParcelado(false); }
-  }, [open, edit]);
+    } else if (defaults) {
+      setF({ ...blank(defaults.tipo_movimentacao ?? "Custo"), ...defaults });
+      setParcelado(false);
+    } else { setF(null); setParcelado(false); }
+  }, [open, edit, defaults]);
 
   const up = <K extends keyof TxDraft>(k: K, v: TxDraft[K]) => setF((p) => (p ? { ...p, [k]: v } : p));
   const methods = data?.methods ?? [];
@@ -93,7 +95,7 @@ export function LancamentoDialog() {
               <div className="grid gap-1.5"><Label>Responsável *</Label><Sel v={f.responsavel || null} on={(s) => up("responsavel", s)} opts={ativos(data?.responsaveis, f.responsavel)} ph="Quem?" /></div>
               {f.tipo_movimentacao === "Renda"
                 ? <div className="grid gap-1.5"><Label>Data do recebimento *</Label><Input type="date" value={f.data_recebimento ?? ""} onChange={(e) => up("data_recebimento", e.target.value)} /></div>
-                : <div className="grid gap-1.5"><Label>Data da compra *</Label><Input type="date" value={f.data_compra ?? ""} onChange={(e) => up("data_compra", e.target.value)} /></div>}
+                : <div className="grid gap-1.5"><Label>Data da compra *</Label><Input type="date" value={f.data_compra ?? ""} onChange={(e) => up("data_compra", e.target.value)} disabled={Boolean(f.primeiro_vencimento)} /></div>}
             </div>
             {f.tipo_movimentacao === "Renda" ? (
               <>
