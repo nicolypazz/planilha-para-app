@@ -14,11 +14,12 @@ export const Route = createFileRoute("/_authenticated/importar")({ component: Pa
 
 type Raw = Record<string, unknown>;
 type Field = "tipo_movimentacao" | "responsavel" | "data" | "descricao" | "categoria" | "tipo_gasto" | "valor" | "tipo_pagamento" | "parcelado" | "parcelas" | "tipo_renda";
+type ImportMode = "renda" | "custo";
 const fields: { key: Field; label: string; required?: boolean }[] = [
   { key: "tipo_movimentacao", label: "Movimentação", required: true },
   { key: "responsavel", label: "Responsável" },
   { key: "data", label: "Data", required: true },
-  { key: "descricao", label: "Descrição", required: true },
+  { key: "descricao", label: "Descrição" },
   { key: "categoria", label: "Categoria" },
   { key: "tipo_gasto", label: "Tipo de gasto" },
   { key: "valor", label: "Valor", required: true },
@@ -32,11 +33,11 @@ const norm = (v: unknown) => String(v ?? "").normalize("NFD").replace(/[\u0300-\
 const aliases: Record<Field, string[]> = {
   tipo_movimentacao: ["movimentacao", "movimento", "tipo movimentacao", "movimentação", "movimentação?"],
   responsavel: ["responsavel", "responsável", "quem", "pessoa"],
-  data: ["data", "data da compra", "data da compra?", "data do lançamento", "data recebimento"],
+  data: ["data", "data da compra", "data da compra?", "data do lançamento", "data recebimento", "data do recebimento", "data do recebimento?"],
   descricao: ["descricao", "descrição", "descricao compra", "descricao renda", "histórico", "historico"],
   categoria: ["categoria", "categoria do gasto", "categoria do gasto?"],
   tipo_gasto: ["tipo de gasto", "tipo gasto", "tipo de gasto?"],
-  valor: ["valor", "valor total", "valor total?", "valor renda"],
+  valor: ["valor", "valor total", "valor total?", "valor renda", "valor recebido", "valor recebido?"],
   tipo_pagamento: ["tipo de pagamento", "pagamento", "forma de pagamento"],
   parcelado: ["parcelado", "parcelado?", "esse gasto foi parcelado"],
   parcelas: ["parcelas", "nº de parcelas", "numero de parcelas", "quantidade de parcelas"],
@@ -74,35 +75,35 @@ function money(v: unknown): number {
 }
 function bool(v: unknown) { return ["sim", "s", "true", "1", "yes"].includes(norm(v)); }
 
-function toDraft(r: Raw, map: Record<Field, string>): TxDraft {
-  const get = (f: Field) => r[map[f]];
-  const mov = norm(get("tipo_movimentacao")).startsWith("r") ? "Renda" : "Custo";
+function toDraft(r: Raw, map: Record<Field, string>, mode: ImportMode): TxDraft {
+  const get = (f: Field) => map[f] ? r[map[f]] : "";
+  const renda = mode === "renda";
   const data = parseDate(get("data"));
   const parcelas = Math.max(1, Number(get("parcelas")) || 1);
   return {
-    tipo_movimentacao: mov,
+    tipo_movimentacao: renda ? "Renda" : "Custo",
     responsavel: String(get("responsavel") || "Não informado").trim(),
-    data_compra: mov === "Custo" ? data : null,
-    data_recebimento: mov === "Renda" ? data : null,
-    descricao: String(get("descricao") || "").trim(),
+    data_compra: renda ? null : data,
+    data_recebimento: renda ? data : null,
+    descricao: renda ? "" : String(get("descricao") || "").trim(),
     categoria: String(get("categoria") || "").trim() || null,
-    tipo_gasto: String(get("tipo_gasto") || "").trim() || null,
-    tipo_renda: String(get("tipo_renda") || "").trim() || null,
+    tipo_gasto: renda ? null : (String(get("tipo_gasto") || "").trim() || null),
+    tipo_renda: renda ? (String(get("tipo_renda") || "").trim() || null) : null,
     valor_total: money(get("valor")),
-    tipo_pagamento: String(get("tipo_pagamento") || "").trim() || null,
-    numero_parcelas: mov === "Renda" ? 1 : (bool(get("parcelado")) ? parcelas : 1),
+    tipo_pagamento: renda ? null : (String(get("tipo_pagamento") || "").trim() || null),
+    numero_parcelas: renda ? 1 : (bool(get("parcelado")) ? parcelas : 1),
   };
 }
 
-function modelFile() {
-  const rows = [{
-    "Movimentação": "Custo", "Responsável": "Nicoly", "Data": "25/09/2026", "Descrição": "Exemplo",
-    "Categoria": "Alimentação", "Tipo de gasto": "Variável", "Valor": 100, "Tipo de pagamento": "Pix",
-    "Parcelado": "Não", "Nº de parcelas": 1, "Tipo de renda": ""
-  }];
+function downloadModel(mode: ImportMode, format: "xlsx" | "csv") {
+  const rows = mode === "renda"
+    ? [{ "Responsável": "Nicoli", "Data do Recebimento": "25/09/2026", "Categoria": "Salário", "Tipo de Renda": "Fixa", "Valor Recebido": 3386.83 }]
+    : [{ "Responsável": "Natasha", "Data da Compra": "25/09/2026", "Descrição": "Exemplo", "Categoria": "Alimentação", "Tipo de Gasto": "Variável", "Valor Total": 100, "Tipo de Pagamento": "Pix", "Parcelado?": "Não", "Nº de Parcelas": 1 }];
   const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Importar");
-  XLSX.writeFile(wb, "modelo_importacao_financeira.xlsx");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, mode === "renda" ? "Renda" : "Custos");
+  const prefix = mode === "renda" ? "modelo_importacao_renda" : "modelo_importacao_custos";
+  XLSX.writeFile(wb, prefix + "." + format, format === "csv" ? { bookType: "csv" } : undefined);
 }
 
 function Page() {
@@ -110,6 +111,7 @@ function Page() {
   const refresh = useRefresh();
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"arquivo" | "colar" | "ia">("arquivo");
+  const [mode, setMode] = useState<ImportMode>("custo");
   const [raw, setRaw] = useState<Raw[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [map, setMap] = useState<Record<Field, string>>({} as Record<Field, string>);
@@ -118,7 +120,7 @@ function Page() {
   const [aiBusy, setAiBusy] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
-  const drafts = useMemo(() => raw.map(r => toDraft(r, map)), [raw, map]);
+  const drafts = useMemo(() => raw.map(r => toDraft(r, map, mode)), [raw, map, mode]);
   const duplicateKeys = useMemo(() => {
     const existing = new Set((data?.txs ?? []).map(t => dupKey({ tipo_movimentacao: t.tipo_movimentacao, data_compra: t.data_compra, data_recebimento: t.data_recebimento, valor_total: Number(t.valor_total), responsavel: t.responsavel, descricao: t.descricao })));
     const seen = new Set<string>();
@@ -128,12 +130,15 @@ function Page() {
     });
   }, [drafts, data]);
 
-  const mappingReady = fields.filter(f => f.required).every(f => !!map[f.key]);
-  const valid = drafts.filter((d, i) => d.descricao && d.valor_total > 0 && (d.data_compra || d.data_recebimento) && !duplicateKeys[i]);
+  const requiredFields: Field[] = mode === "renda" ? ["responsavel", "data", "categoria", "tipo_renda", "valor"] : ["responsavel", "data", "descricao", "categoria", "tipo_gasto", "valor", "tipo_pagamento", "parcelado", "parcelas"];
+  const mappingReady = requiredFields.every(f => !!map[f]);
+  const valid = drafts.filter((d, i) => (mode === "renda" || !!d.descricao) && d.valor_total > 0 && (d.data_compra || d.data_recebimento) && !duplicateKeys[i]);
   const invalid = drafts.length - valid.length;
 
   const readRows = (rows: Raw[]) => {
     const hs = Object.keys(rows[0] ?? {});
+    const detected = hs.some(h => ["valor recebido", "data do recebimento", "tipo de renda"].includes(norm(h))) && !hs.some(h => ["valor total", "data da compra", "tipo de pagamento"].includes(norm(h))) ? "renda" : "custo";
+    setMode(detected);
     setHeaders(hs); setRaw(rows); setMap(guess(hs)); setConfirmed(false);
   };
 
@@ -175,7 +180,7 @@ function Page() {
   }
 
   async function confirmImport() {
-    if (!mappingReady) return toast.error("Mapeie as colunas obrigatórias: Movimentação, Data, Descrição e Valor.");
+    if (!mappingReady) return toast.error("Mapeie as colunas obrigatórias do modelo selecionado antes de confirmar.");
     if (!valid.length) return toast.error("Não há lançamentos válidos para importar.");
     setConfirmed(false);
     try {
@@ -190,7 +195,23 @@ function Page() {
   return <div className="mx-auto max-w-7xl space-y-4">
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div><h1 className="font-display text-3xl font-bold">Importar</h1><p className="text-sm text-muted-foreground">Importe vários lançamentos, revise os dados e confirme tudo de uma vez.</p></div>
-      <Button variant="outline" onClick={modelFile}><Download />Baixar modelo</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => downloadModel("renda", "xlsx")}><Download />Baixar Modelo de Renda (.xlsx)</Button>
+        <Button variant="outline" onClick={() => downloadModel("renda", "csv")}><Download />Renda (.csv)</Button>
+        <Button variant="outline" onClick={() => downloadModel("custo", "xlsx")}><Download />Baixar Modelo de Custos (.xlsx)</Button>
+        <Button variant="outline" onClick={() => downloadModel("custo", "csv")}><Download />Custos (.csv)</Button>
+      </div>
+    </div>
+
+    <div className="grid gap-3 md:grid-cols-2">
+      <section className="panel border-income/30 bg-income/5 p-4">
+        <h2 className="font-display font-semibold">Modelo de Importação: RENDA (Simplificado)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Responsável · Data do Recebimento · Categoria · Tipo de Renda · Valor Recebido. Movimentação será definida como Renda e Parcelas = 1 automaticamente.</p>
+      </section>
+      <section className="panel border-expense/30 bg-expense/5 p-4">
+        <h2 className="font-display font-semibold">Modelo de Importação: CUSTOS</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Responsável · Data da Compra · Descrição · Categoria · Tipo de Gasto · Valor Total · Tipo de Pagamento · Parcelado? · Nº de Parcelas.</p>
+      </section>
     </div>
 
     <div className="flex gap-2 rounded-xl bg-muted p-1 w-fit">
@@ -203,7 +224,7 @@ function Page() {
       <div className="flex flex-wrap items-center gap-3">
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => e.target.files?.[0] && readFile(e.target.files[0])}/>
         <Button onClick={() => fileRef.current?.click()}><Upload />Selecionar Excel/CSV</Button>
-        <span className="text-sm text-muted-foreground">XLSX, XLS ou CSV</span>
+        <span className="text-sm text-muted-foreground">XLSX, XLS ou CSV · modelo detectado: <b>{mode === "renda" ? "Renda" : "Custos"}</b></span>
       </div>
     </section>}
 
@@ -221,9 +242,9 @@ function Page() {
     </section>}
 
     {headers.length > 0 && <section className="panel space-y-4 p-5">
-      <div><h2 className="font-display font-semibold">1. Mapeamento de colunas</h2><p className="text-xs text-muted-foreground">Revise como cada coluna do arquivo será interpretada.</p></div>
+      <div><h2 className="font-display font-semibold">1. Mapeamento de colunas — {mode === "renda" ? "Renda" : "Custos"}</h2><p className="text-xs text-muted-foreground">Revise como cada coluna do arquivo será interpretada. Os campos obrigatórios variam conforme o modelo.</p></div>
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {fields.map(f => <div key={f.key}><label className="mb-1 block text-xs font-medium">{f.label}{f.required ? " *" : ""}</label>
+        {fields.map(f => <div key={f.key}><label className="mb-1 block text-xs font-medium">{f.label}{requiredFields.includes(f.key) ? " *" : ""}</label>
           <Select value={map[f.key] || "__none"} onValueChange={v => setMap(m => ({ ...m, [f.key]: v === "__none" ? "" : v }))}>
             <SelectTrigger><SelectValue placeholder="Não mapear"/></SelectTrigger><SelectContent><SelectItem value="__none">Não mapear</SelectItem>{headers.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
           </Select>
@@ -238,10 +259,10 @@ function Page() {
       </div>
       <div className="overflow-auto rounded-lg border border-border">
         <table className="w-full min-w-[1050px] text-xs">
-          <thead className="bg-muted text-muted-foreground"><tr>{["Status","Mov.","Data","Descrição","Categoria","Valor","Pagamento","Parcelas","Responsável"].map(h=><th key={h} className="p-2 text-left font-medium">{h}</th>)}</tr></thead>
-          <tbody>{drafts.map((d,i)=><tr key={i} className={duplicateKeys[i] || !d.descricao || !d.valor_total || !(d.data_compra || d.data_recebimento) ? "bg-overdue/10" : "border-t border-border"}>
-            <td className="p-2">{duplicateKeys[i] ? <span className="text-overdue">Duplicado</span> : (!d.descricao || !d.valor_total || !(d.data_compra || d.data_recebimento)) ? <span className="text-overdue">Inválido</span> : <span className="text-paid">OK</span>}</td>
-            <td className="p-2">{d.tipo_movimentacao}</td><td className="p-2">{d.data_compra || d.data_recebimento || "—"}</td><td className="p-2">{d.descricao || "—"}</td><td className="p-2">{d.categoria || "—"}</td><td className="p-2 font-semibold">{d.valor_total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</td><td className="p-2">{d.tipo_pagamento || "—"}</td><td className="p-2">{d.numero_parcelas}</td><td className="p-2">{d.responsavel}</td>
+          <thead className="bg-muted text-muted-foreground"><tr>{["Status","Mov.","Data","Descrição/Categoria","Categoria","Valor","Pagamento","Parcelas","Responsável"].map(h=><th key={h} className="p-2 text-left font-medium">{h}</th>)}</tr></thead>
+          <tbody>{drafts.map((d,i)=><tr key={i} className={duplicateKeys[i] || (mode === "custo" && !d.descricao) || !d.valor_total || !(d.data_compra || d.data_recebimento) ? "bg-overdue/10" : "border-t border-border"}>
+            <td className="p-2">{duplicateKeys[i] ? <span className="text-overdue">Duplicado</span> : ((mode === "custo" && !d.descricao) || !d.valor_total || !(d.data_compra || d.data_recebimento)) ? <span className="text-overdue">Inválido</span> : <span className="text-paid">OK</span>}</td>
+            <td className="p-2">{d.tipo_movimentacao}</td><td className="p-2">{d.data_compra || d.data_recebimento || "—"}</td><td className="p-2">{d.descricao || (mode === "renda" ? d.categoria || d.tipo_renda || "—" : "—")}</td><td className="p-2">{d.categoria || "—"}</td><td className="p-2 font-semibold">{d.valor_total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</td><td className="p-2">{d.tipo_pagamento || "—"}</td><td className="p-2">{d.numero_parcelas}</td><td className="p-2">{d.responsavel}</td>
           </tr>)}</tbody>
         </table>
       </div>
