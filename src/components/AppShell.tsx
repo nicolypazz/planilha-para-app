@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ListChecks, Download, Settings, Wallet, Plus, LogOut } from "lucide-react";
+import { LayoutDashboard, ListChecks, Download, Settings, Wallet, Plus, LogOut, CreditCard } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { openLancamento } from "@/lib/ui";
@@ -8,6 +8,7 @@ import { LancamentoDialog } from "./LancamentoDialog";
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/transacoes", label: "Transações", icon: ListChecks },
+  { to: "/faturas", label: "Faturas", icon: CreditCard },
   { to: "/importar", label: "Importar", icon: Download },
   { to: "/configuracoes", label: "Config", icon: Settings },
 ] as const;
