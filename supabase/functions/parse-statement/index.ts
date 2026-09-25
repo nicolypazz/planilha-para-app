@@ -31,15 +31,19 @@ serve(async (req) => {
   if (!key) return json({ error: "LOVABLE_API_KEY não configurada no projeto." }, 500);
 
   const prompt = `Você transforma texto de extrato bancário em lançamentos financeiros. Retorne SOMENTE JSON válido, sem markdown, no formato:
-{"transactions":[{"tipo_movimentacao":"Custo","data":"YYYY-MM-DD","descricao":"...","valor":123.45,"categoria":"...","tipo_gasto":"...","tipo_pagamento":"...","parcelado":"Não","parcelas":1,"responsavel":"Não informado","tipo_renda":""}]}
-Regras:
-- Uma transação por lançamento real do extrato.
-- Não invente datas ou valores. Se uma linha não for uma transação, ignore.
-- Valor sempre positivo; use Custo para débitos/pagamentos e Renda para créditos/entradas.
-- Categorize de forma conservadora. Quando a lista de categorias configuradas pelo usuário estiver disponível, escolha exatamente uma delas; caso contrário, use uma categoria curta e objetiva.
+{"transactions":[{"tipo_movimentacao":"Custo","data":"YYYY-MM-DD","descricao":"...","valor":-174.29,"categoria":"...","tipo_gasto":"...","tipo_pagamento":"...","parcelado":"Não","parcelas":1,"responsavel":"Não informado","tipo_renda":""}]}
+Regras obrigatórias:
+- Uma transação por lançamento real do extrato. Não invente datas ou valores.
+- Preserve o sinal do valor encontrado: débito/saída NEGATIVO (ex.: -174.29) e crédito/entrada POSITIVO (ex.: 2449.64).
+- Valor negativo = Custo. Valor positivo ou sem sinal = Renda. Nunca use o saldo acumulado como valor da transação.
+- Ignore integralmente linhas/itens "SALDO DO DIA", "SALDO ANTERIOR", "SALDO DISPONÍVEL", totais e saldos acumulados.
+- Quando uma linha tiver dois valores monetários, considere o primeiro valor com sinal como a movimentação e trate o último valor sem sinal como saldo acumulado, salvo evidência clara em contrário.
+- Converta valores brasileiros corretamente: 2.449,64 = 2449.64 e -174,29 = -174.29.
+- Se a descrição contiver NATASHA, responsável deve ser "Natasha"; se contiver NICOLI, responsável deve ser "Nicoli".
+- Categorize de forma conservadora. Quando a lista de categorias configuradas estiver disponível, escolha exatamente uma delas.
 - Se não houver informação para forma de pagamento, parcelamento, responsável ou tipo de renda, use vazio ou "Não informado".
-- Para datas sem ano, use o ano inferível do próprio extrato; se não for possível, não invente: use "".
-Categorias configuradas: ${JSON.stringify(categories)}\nFormas de pagamento configuradas: ${JSON.stringify(payment_methods)}\nResponsáveis configurados: ${JSON.stringify(responsaveis)}\n\nTexto do extrato:
+- Para datas sem ano, use o ano inferível do próprio extrato; se não for possível, use "".
+Categorias configuradas: ${JSON.stringify(categories)}\nFormas de pagamento configuradas: ${JSON.stringify(payment_methods)}\nResponsáveis configurados: ${JSON.stringify(responsaveis)}\n\nTexto do extrato sanitizado:
 ---BEGIN---
 ${text}
 ---END---`;
