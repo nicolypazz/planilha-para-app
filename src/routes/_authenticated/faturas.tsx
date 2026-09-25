@@ -105,7 +105,6 @@ function Page() {
           {open.__paid_group__ && <div className="space-y-3 border-t border-border bg-muted/20 p-3">{paidInvoices.map(renderInvoice)}</div>}
         </section>
       )}
-      </div>
     </div>
   );
 }
