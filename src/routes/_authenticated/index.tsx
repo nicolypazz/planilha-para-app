@@ -68,11 +68,10 @@ function Dashboard() {
       natasha: sumBy(
         data.rows.filter((x) => {
           if (x.mov !== "Renda") return false;
-          const resp = x.tx.responsavel.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();
-          const tipo = String(x.tx.tipo_renda ?? "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();
+          const resp = String(x.tx.responsavel ?? "").trim().toLowerCase();
           const dataRenda = (x.tx.data_recebimento ?? x.tx.data_compra ?? "").slice(0, 7);
           const dentroDoPeriodo = dataRenda >= r[0] && dataRenda <= r[1];
-          return dentroDoPeriodo && resp === "natasha" && (tipo === "variavel" || tipo === "");
+          return dentroDoPeriodo && resp === "natasha";
         }),
         (x) => x.tx.descricao?.trim() || x.tx.categoria?.trim() || x.tx.tipo_renda?.trim() || "Outros"
       ),
