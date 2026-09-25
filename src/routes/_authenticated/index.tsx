@@ -214,7 +214,7 @@ function Dashboard() {
             <tbody>{calc.porResp.map((x) => <tr key={x.nome} className="border-t border-border"><td className="py-2">{x.nome}</td><td className="text-right">{brl(x.fixa)}</td><td className="text-right text-income">{brl(x.variavel)}</td></tr>)}</tbody>
           </table>
           <div className="mt-3 border-t border-border pt-3">
-            <Donut items={calc.porResp.map((x) => ({ name: x.nome, value: x.fixa + x.variavel }))} colors={["var(--income)", "var(--highlight)", "var(--balance)", "var(--pending)"]} />
+            <Donut items={calc.porResp.map((x) => ({ name: x.nome, value: x.fixa + x.variavel }))} colors={calc.porResp.map((x) => { const nome = x.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase(); if (nome === "nicoli") return "#f59e0b"; if (nome === "natasha") return "#93c5fd"; return "#2dd4bf"; })} />
           </div>
         </Panel>
       </div>
