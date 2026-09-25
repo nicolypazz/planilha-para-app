@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowDownCircle, CheckCircle2, Clock, Coins, CreditCard,
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, defaultPeriod, inRange, range, type Period } from "@/components/PeriodFilter";
 import { brl, fmtDate, mesLabel, txDate, txLabel, useFin, type Row } from "@/lib/data";
-import { monthsBetween } from "@/lib/engine";
+import { monthsBetween, todayIso } from "@/lib/engine";
 import { openLancamento } from "@/lib/ui";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -68,7 +68,15 @@ function Dashboard() {
         const rs = rendas.filter((x) => x.tx.responsavel === u.nome);
         return { nome: u.nome, fixa: total(rs.filter((x) => x.tx.tipo_renda === "Fixa")), variavel: total(rs.filter((x) => x.tx.tipo_renda !== "Fixa")) };
       }).filter((x) => x.fixa + x.variavel > 0 || resp === "all"),
-      maiores: sumBy(custos, (x) => txLabel(x.tx)).slice(0, 6),
+      vencimentos: sumBy(custos, (x) => x.inst.data_vencimento.slice(8, 10)).sort((a, b) => Number(a.name) - Number(b.name)),
+      proximoVencimento: (() => {
+        const hoje = todayIso();
+        const futuros = custos.filter((x) => x.inst.data_vencimento >= hoje).sort((a, b) => a.inst.data_vencimento.localeCompare(b.inst.data_vencimento));
+        if (!futuros.length) return null;
+        const data = futuros[0]!.inst.data_vencimento;
+        return { data, valor: total(futuros.filter((x) => x.inst.data_vencimento === data)) };
+      })(),
+      maiores: sumBy(custos, (x) => x.tx.descricao?.trim() || "Sem descrição").slice(0, 6),
       evo, ultimos,
     };
   }, [data, p, resp]);
@@ -160,19 +168,30 @@ function Dashboard() {
             <thead className="text-xs text-muted-foreground"><tr><th className="py-1 text-left font-medium">Pessoa</th><th className="text-right font-medium">Fixa</th><th className="text-right font-medium">Variável</th></tr></thead>
             <tbody>{calc.porResp.map((x) => <tr key={x.nome} className="border-t border-border"><td className="py-2">{x.nome}</td><td className="text-right">{brl(x.fixa)}</td><td className="text-right text-income">{brl(x.variavel)}</td></tr>)}</tbody>
           </table>
+          <div className="mt-3 border-t border-border pt-3">
+            <Donut items={calc.porResp.map((x) => ({ name: x.nome, value: x.fixa + x.variavel }))} />
+          </div>
         </Panel>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-3">
-        <Panel title="Despesas por Mês" className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={calc.evo} margin={{ left: -10, right: 10 }}>
+        <Panel title="Despesas por Dia de Vencimento" className="lg:col-span-2">
+          <div className="mb-3 rounded-xl border border-border bg-muted/40 p-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Clock className="h-4 w-4 text-pending" />Próximo vencimento</div>
+            {calc.proximoVencimento ? (
+              <div className="mt-1 flex items-end justify-between gap-3">
+                <div className="font-display text-lg font-bold">{fmtDate(calc.proximoVencimento.data)}</div>
+                <div className="text-sm font-semibold text-expense">{brl(calc.proximoVencimento.valor)}</div>
+              </div>
+            ) : <div className="mt-1 text-sm text-muted-foreground">Nenhum vencimento futuro no período.</div>}
+          </div>
+          <ResponsiveContainer width="100%" height={190}>
+            <BarChart data={calc.vencimentos} margin={{ left: -10, right: 10 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="mes" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="name" tickFormatter={(v) => `Dia ${v}`} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={k} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip {...tip} cursor={{ fill: "var(--accent)" }} /><Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="Custos" fill="var(--expense)" radius={[5, 5, 0, 0]} />
-              <Bar dataKey="Receitas" name="Renda" fill="var(--income)" radius={[5, 5, 0, 0]} />
+              <Tooltip {...tip} cursor={{ fill: "var(--accent)" }} />
+              <Bar dataKey="value" name="Despesas" fill="var(--expense)" radius={[5, 5, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Panel>
