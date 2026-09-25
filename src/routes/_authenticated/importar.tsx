@@ -106,7 +106,21 @@ async function extractPdfText(file: File): Promise<string> {
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
-    pages.push(content.items.map((item: { str?: string }) => item.str ?? "").join(" "));
+    const items = content.items
+      .filter((item: { str?: string }) => item.str?.trim())
+      .map((item: { str?: string; transform?: number[] }) => ({
+        str: item.str ?? "",
+        x: item.transform?.[4] ?? 0,
+        y: item.transform?.[5] ?? 0,
+      }))
+      .sort((a, b) => b.y - a.y || a.x - b.x);
+    const lines: { y: number; parts: { x: number; str: string }[] }[] = [];
+    for (const item of items) {
+      const line = lines.find(x => Math.abs(x.y - item.y) <= 3);
+      if (line) line.parts.push({ x: item.x, str: item.str });
+      else lines.push({ y: item.y, parts: [{ x: item.x, str: item.str }] });
+    }
+    pages.push(lines.map(line => line.parts.sort((a, b) => a.x - b.x).map(x => x.str).join(" ")).join("\n"));
   }
   return pages.join("\n");
 }
