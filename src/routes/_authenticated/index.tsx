@@ -157,7 +157,7 @@ function Dashboard() {
           <BarList items={calc.cat} />
         </Panel>
         <Panel title="Quinzena"><Donut items={calc.quinz} colors={["var(--balance)", "var(--expense)"]} /></Panel>
-        <Panel title="Tipo de Pagamento"><Donut items={calc.pag} /></Panel>
+        <Panel title="Tipo de Pagamento"><Donut items={calc.pag} colors={["var(--highlight)", "var(--balance)", "var(--income)", "var(--pending)", "var(--expense)", "#818cf8", "#22d3ee"]} /></Panel>
         <Panel title="Pagamentos e Vencimentos">
           <div className="space-y-3 pt-1">
             {([["Pagos", calc.pago, "var(--paid)", CheckCircle2], ["No prazo", calc.pend, "var(--pending)", Clock], ["Atrasado", calc.atras, "var(--overdue)", AlertTriangle]] as const).map(([l, v, c, I]) => {
@@ -204,7 +204,7 @@ function Dashboard() {
             <tbody>{calc.porResp.map((x) => <tr key={x.nome} className="border-t border-border"><td className="py-2">{x.nome}</td><td className="text-right">{brl(x.fixa)}</td><td className="text-right text-income">{brl(x.variavel)}</td></tr>)}</tbody>
           </table>
           <div className="mt-3 border-t border-border pt-3">
-            <Donut items={calc.porResp.map((x) => ({ name: x.nome, value: x.fixa + x.variavel }))} />
+            <Donut items={calc.porResp.map((x) => ({ name: x.nome, value: x.fixa + x.variavel }))} colors={["var(--income)", "var(--highlight)", "var(--balance)", "var(--pending)"]} />
           </div>
         </Panel>
       </div>
