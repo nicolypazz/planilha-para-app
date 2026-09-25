@@ -78,6 +78,7 @@ function bool(v: unknown) { return ["sim", "s", "true", "1", "yes"].includes(nor
 function cleanStatementText(text: string): string {
   const balanceTerms = /saldo\s+(do\s+dia|anterior|disponivel|bloqueado|final)|total\s+(do\s+dia|de\s+entradas|de\s+saidas)/i;
   const dateRe = /(?:^|\s)(\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)(?:\s|$)/;
+  const moneyPattern = /[-+]?R?\$?\s?\d{1,3}(?:\.\d{3})*,\d{2}|[-+]?R?\$?\s?\d+,\d{2}/;
   const moneyRe = /[-+]?R?\$?\s?\d{1,3}(?:\.\d{3})*,\d{2}|[-+]?R?\$?\s?\d+,\d{2}/g;
   const lines = text.split(/\r?\n/).map(x => x.replace(/\s+/g, " ").trim()).filter(Boolean);
   const blocks: string[] = [];
@@ -91,7 +92,7 @@ function cleanStatementText(text: string): string {
     moneyRe.lastIndex = 0;
   }
   if (current) blocks.push(current);
-  return blocks.filter(block => dateRe.test(block) && moneyRe.test(block)).map(block => {
+  return blocks.filter(block => dateRe.test(block) && moneyPattern.test(block)).map(block => {
     const amounts = block.match(moneyRe) ?? [];
     return amounts.length > 1 ? block + " [ATENÇÃO: se houver dois valores monetários, o último normalmente é saldo acumulado; não lançar saldo como transação.]" : block;
   }).join("\n");
