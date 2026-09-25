@@ -23,7 +23,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
 
-  const { text } = await req.json().catch(() => ({ text: "" }));
+  const { text, categories = [], payment_methods = [], responsaveis = [] } = await req.json().catch(() => ({ text: "" }));
   if (typeof text !== "string" || text.trim().length < 10) return json({ error: "Extrato vazio ou muito curto." }, 400);
   if (text.length > 50000) return json({ error: "Extrato muito grande. Limite de 50.000 caracteres." }, 413);
 
@@ -36,10 +36,10 @@ Regras:
 - Uma transação por lançamento real do extrato.
 - Não invente datas ou valores. Se uma linha não for uma transação, ignore.
 - Valor sempre positivo; use Custo para débitos/pagamentos e Renda para créditos/entradas.
-- Categorize de forma conservadora em categorias como Alimentação, Transporte, Moradia, Saúde, Compras, Lazer, Assinaturas, Educação, Serviços, Tarifas ou Outros.
+- Categorize de forma conservadora. Quando a lista de categorias configuradas pelo usuário estiver disponível, escolha exatamente uma delas; caso contrário, use uma categoria curta e objetiva.
 - Se não houver informação para forma de pagamento, parcelamento, responsável ou tipo de renda, use vazio ou "Não informado".
 - Para datas sem ano, use o ano inferível do próprio extrato; se não for possível, não invente: use "".
-Texto do extrato:
+Categorias configuradas: ${JSON.stringify(categories)}\nFormas de pagamento configuradas: ${JSON.stringify(payment_methods)}\nResponsáveis configurados: ${JSON.stringify(responsaveis)}\n\nTexto do extrato:
 ---BEGIN---
 ${text}
 ---END---`;
