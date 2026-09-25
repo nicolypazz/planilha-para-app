@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedTransacoesRouteImport } from './routes/_authenticated/transacoes'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
+import { Route as AuthenticatedFaturasRouteImport } from './routes/_authenticated/faturas'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -41,6 +42,11 @@ const AuthenticatedTransacoesRoute = AuthenticatedTransacoesRouteImport.update({
   path: '/transacoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFaturasRoute = AuthenticatedFaturasRouteImport.update({
+  id: '/faturas',
+  path: '/faturas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
   id: '/importar',
   path: '/importar',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/transacoes': typeof AuthenticatedTransacoesRoute
   '/importar': typeof AuthenticatedImportarRoute
+  '/faturas': typeof AuthenticatedFaturasRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/transacoes': typeof AuthenticatedTransacoesRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/': typeof AuthenticatedIndexRoute
+  '/faturas': typeof AuthenticatedFaturasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,13 +76,14 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/transacoes': typeof AuthenticatedTransacoesRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
+  '/_authenticated/faturas': typeof AuthenticatedFaturasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/configuracoes' | '/transacoes' | '/importar'
+  fullPaths: '/' | '/auth' | '/configuracoes' | '/transacoes' | '/importar' | '/faturas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/configuracoes' | '/transacoes' | '/importar' | '/'
+  to: '/auth' | '/configuracoes' | '/transacoes' | '/importar' | '/faturas' | '/'
   id:
     | '__root__'
     | '/_authenticated'
@@ -134,6 +143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImportarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/faturas': {
+      id: '/_authenticated/faturas'
+      path: '/faturas'
+      fullPath: '/faturas'
+      preLoaderRoute: typeof AuthenticatedFaturasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -141,6 +157,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedTransacoesRoute: typeof AuthenticatedTransacoesRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
+  AuthenticatedFaturasRoute: typeof AuthenticatedFaturasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -148,6 +165,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedTransacoesRoute: AuthenticatedTransacoesRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
+  AuthenticatedFaturasRoute: AuthenticatedFaturasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
