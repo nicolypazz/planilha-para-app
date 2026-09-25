@@ -64,7 +64,7 @@ function Page() {
           const key = `${inv.method}|${inv.dueDate}`;
           const paid = inv.insts.every(({ inst }) => inst.pago);
           const total = inv.insts.reduce((s, { inst }) => s + Number(inst.valor_parcela), 0);
-          const isOpen = open[key] ?? true;
+          const isOpen = open[key] ?? false;
           const uniqueTx = new Set(inv.insts.map(({ tx }) => tx.id)).size;
           return (
             <section key={key} className="panel overflow-hidden">
