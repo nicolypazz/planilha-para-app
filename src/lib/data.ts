@@ -54,6 +54,8 @@ export interface TxDraft {
   valor_total: number;
   tipo_pagamento: string | null;
   numero_parcelas: number;
+  /** Uso interno ao lançar uma compra diretamente dentro de uma fatura específica. */
+  primeiro_vencimento?: string | null;
 }
 /** Para importação histórica: quantas parcelas já foram pagas e quando. */
 export interface PaidInfo { parcelasPagas: number; dataPagamento: string | null }
