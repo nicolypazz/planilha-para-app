@@ -301,8 +301,8 @@ function Page() {
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div><h1 className="font-display text-3xl font-bold">Importar</h1><p className="text-sm text-muted-foreground">Importe vários lançamentos, revise os dados e confirme tudo de uma vez.</p></div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => downloadModel("renda", "xlsx")}><Download />Baixar Modelo de Renda (.xlsx)</Button>
-        <Button variant="outline" onClick={() => downloadModel("custo", "xlsx")}><Download />Baixar Modelo de Custos (.xlsx)</Button>
+        <Button variant="outline" onClick={() => downloadModel("renda")}><Download />Baixar Modelo de Renda (.xlsx)</Button>
+        <Button variant="outline" onClick={() => downloadModel("custo")}><Download />Baixar Modelo de Custos (.xlsx)</Button>
       </div>
     </div>
 
@@ -514,7 +514,7 @@ function toDraft(r: Raw, map: Record<Field, string>, mode: ImportMode): TxDraft 
   };
 }
 
-function downloadModel(mode: ImportMode, format: "xlsx" | "csv") {
+function downloadModel(mode: ImportMode) {
   const rows = mode === "renda"
     ? [{ "Responsável": "Nicoli", "Data do Recebimento": "25/09/2026", "Categoria": "Salário", "Tipo de Renda": "Fixa", "Valor Recebido": 3386.83 }]
     : [{ "Responsável": "Natasha", "Data da Compra": "25/09/2026", "Descrição": "Exemplo", "Categoria": "Alimentação", "Tipo de Gasto": "Variável", "Valor Total": 100, "Tipo de Pagamento": "Pix", "Parcelado?": "Não", "Nº de Parcelas": 1 }];
@@ -522,7 +522,7 @@ function downloadModel(mode: ImportMode, format: "xlsx" | "csv") {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, mode === "renda" ? "Renda" : "Custos");
   const prefix = mode === "renda" ? "modelo_importacao_renda" : "modelo_importacao_custos";
-  XLSX.writeFile(wb, prefix + "." + format, format === "csv" ? { bookType: "csv" } : undefined);
+  XLSX.writeFile(wb, `${prefix}.xlsx`);
 }
 
 function Page() {
