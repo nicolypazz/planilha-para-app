@@ -128,6 +128,7 @@ function Page() {
     });
   }, [drafts, data]);
 
+  const mappingReady = fields.filter(f => f.required).every(f => !!map[f.key]);
   const valid = drafts.filter((d, i) => d.descricao && d.valor_total > 0 && (d.data_compra || d.data_recebimento) && !duplicateKeys[i]);
   const invalid = drafts.length - valid.length;
 
@@ -158,7 +159,7 @@ function Page() {
     if (!extrato.trim()) return toast.error("Cole o texto do extrato primeiro.");
     setAiBusy(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke("parse-statement", { body: { text: extrato } });
+      const { data: result, error } = await supabase.functions.invoke("parse-statement", { body: { text: extrato, categories: data.categories.map(x => x.nome), payment_methods: data.methods.map(x => x.nome), responsaveis: data.responsaveis.map(x => x.nome) } });
       if (error) throw error;
       const items = Array.isArray(result?.transactions) ? result.transactions : [];
       if (!items.length) throw new Error("A IA não encontrou transações.");
@@ -174,6 +175,7 @@ function Page() {
   }
 
   async function confirmImport() {
+    if (!mappingReady) return toast.error("Mapeie as colunas obrigatórias: Movimentação, Data, Descrição e Valor.");
     if (!valid.length) return toast.error("Não há lançamentos válidos para importar.");
     setConfirmed(false);
     try {
@@ -245,7 +247,7 @@ function Page() {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <p className="text-xs text-muted-foreground">Duplicidades são bloqueadas por movimentação + data + valor + responsável + descrição.</p>
-        <Button onClick={confirmImport} disabled={!valid.length}><CheckCircle2 />Confirmar {valid.length} lançamentos</Button>
+        <Button onClick={confirmImport} disabled={!valid.length || !mappingReady}><CheckCircle2 />Confirmar {valid.length} lançamentos</Button>
       </div>
       {confirmed && <div className="rounded-lg bg-paid/10 p-3 text-sm text-paid">Importação concluída.</div>}
     </section>}
