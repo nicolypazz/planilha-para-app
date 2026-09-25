@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, Pencil, Trash2, Copy, Search, CheckCircle2, Circle, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { exportTransactions } from "@/lib/export";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, defaultPeriod, inRange, range, type Period } from "@/components/PeriodFilter";
@@ -68,6 +69,10 @@ function Page() {
   );
   const totR = list.filter((t) => t.tipo_movimentacao === "Renda").reduce((s, t) => s + Number(t.valor_total), 0);
   const totC = list.filter((t) => t.tipo_movimentacao === "Custo").reduce((s, t) => s + Number(t.valor_total), 0);
+  const exportar = (format: "csv" | "xlsx") => {
+    exportTransactions(list, format, "transacoes-filtradas");
+    toast.success("Exportação concluída");
+  };
 
   async function remove(t: Tx) {
     if (!confirm(`Excluir "${txLabel(t)}"${t.numero_parcelas > 1 ? ` e suas ${t.numero_parcelas} parcelas` : ""}?`)) return;
@@ -85,7 +90,11 @@ function Page() {
     <div className="mx-auto max-w-6xl space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div><h1 className="font-display text-3xl font-bold">Transações</h1><p className="text-sm text-muted-foreground">{list.length} lançamentos · Renda {brl(totR)} · Custos {brl(totC)} (valores totais)</p></div>
-        <Button onClick={() => openLancamento()}>+ Novo lançamento</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => exportar("csv")}>Baixar CSV</Button>
+          <Button variant="outline" onClick={() => exportar("xlsx")}>Baixar Excel</Button>
+          <Button onClick={() => openLancamento()}>+ Novo lançamento</Button>
+        </div>
       </div>
       <div className={todo ? "opacity-50" : ""}><PeriodFilter p={p} setP={(x) => { setTodo(false); setP(x); }} /></div>
       <div className="panel space-y-2 p-3">
