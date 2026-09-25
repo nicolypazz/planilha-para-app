@@ -65,7 +65,7 @@ function Dashboard() {
       cat: sumBy(custos, (x) => x.tx.categoria || "Sem categoria"),
       quinz: sumBy(custos, (x) => x.inst.quinzena).sort((a, b) => a.name.localeCompare(b.name)),
       pag: sumBy(custos, (x) => x.tx.tipo_pagamento || "—"),
-      natasha: sumBy(rendas.filter((x) => x.tx.responsavel.trim().toLowerCase() === "natasha" && String(x.tx.tipo_renda ?? "").trim().toLowerCase() === "variável"), (x) => x.tx.descricao?.trim() || "Outros"),
+      natasha: sumBy(rendas.filter((x) => {\n        const resp = x.tx.responsavel.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();\n        const tipo = String(x.tx.tipo_renda ?? "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();\n        return resp === "natasha" && (tipo === "variavel" || tipo === "");\n      }), (x) => x.tx.descricao?.trim() || "Outros"),
       porResp: data.responsaveis.map((u) => {
         const rs = rendas.filter((x) => x.tx.responsavel === u.nome);
         return { nome: u.nome, fixa: total(rs.filter((x) => x.tx.tipo_renda === "Fixa")), variavel: total(rs.filter((x) => x.tx.tipo_renda !== "Fixa")) };
