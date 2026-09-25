@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { recalcMethod, useFin, useRefresh, type Method, type Named } from "@/lib/data";
+import { exportConfigAndTransactions } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -65,7 +66,13 @@ function Page() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <h1 className="font-display text-3xl font-bold">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><h1 className="font-display text-3xl font-bold">Configurações</h1><p className="text-sm text-muted-foreground">Backup completo dos dados financeiros e das configurações.</p></div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { exportConfigAndTransactions(data.txs, data, "csv"); toast.success("Backup CSV baixado"); }}><Download className="mr-2 h-4 w-4" />Backup CSV</Button>
+          <Button variant="outline" onClick={() => { exportConfigAndTransactions(data.txs, data, "xlsx"); toast.success("Backup Excel baixado"); }}><Download className="mr-2 h-4 w-4" />Backup Excel</Button>
+        </div>
+      </div>
       <Box title="Cartões e formas de pagamento" hint="Com fechamento: compra depois do dia de fechamento vai para a fatura do mês seguinte. Sem fechamento (Pix, débito, dinheiro): vence na data da compra.">
         <div className="-mx-4 overflow-x-auto px-4">
           <table className="w-full min-w-[560px] text-sm">
