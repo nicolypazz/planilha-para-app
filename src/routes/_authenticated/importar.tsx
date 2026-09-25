@@ -199,8 +199,10 @@ function Page() {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [edits, setEdits] = useState<Record<number, Partial<Pick<TxDraft, "categoria" | "responsavel" | "valor_total">>>>({});
 
-  const drafts = useMemo(() => raw.map(r => toDraft(r, map, mode)), [raw, map, mode]);
-  const editedDrafts = useMemo(() => drafts.map((d, i) => ({ ...d, ...(edits[i] ?? {}) })), [drafts, edits]);
+  // Recalcula a prévia diretamente a cada alteração de arquivo, mapeamento ou modo.
+  // Isso evita que a tabela fique com valores antigos após trocar o mapeamento das colunas.
+  const drafts = raw.map(r => toDraft(r, map, mode));
+  const editedDrafts = drafts.map((d, i) => ({ ...d, ...(edits[i] ?? {}) }));
   const duplicateKeys = useMemo(() => {
     const existing = new Set((data?.txs ?? []).map(t => dupKey({ tipo_movimentacao: t.tipo_movimentacao, data_compra: t.data_compra, data_recebimento: t.data_recebimento, valor_total: Number(t.valor_total), responsavel: t.responsavel, descricao: t.descricao })));
     const seen = new Set<string>();
@@ -359,7 +361,7 @@ function Page() {
 
     {drafts.length > 0 && <section className="panel space-y-4 p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div><h2 className="font-display font-semibold">2. Prévia e validação</h2><p className="text-xs text-muted-foreground">{drafts.length} linhas · {valid.length} prontas · {invalid} com erro ou duplicidade.</p></div>
+        <div><h2 className="font-display font-semibold">2. Prévia e validação</h2><p className="text-xs text-muted-foreground">{editedDrafts.length} linhas · {valid.length} prontas · {invalid} com erro ou duplicidade.</p></div>
         {invalid > 0 && <span className="flex items-center gap-1 text-xs text-overdue"><AlertTriangle className="h-4 w-4"/>Revise as linhas destacadas</span>}
       </div>
       <div className="overflow-auto rounded-lg border border-border">
@@ -708,7 +710,7 @@ function Page() {
       <div className="overflow-auto rounded-lg border border-border">
         <table className="w-full min-w-[1050px] text-xs">
           <thead className="bg-muted text-muted-foreground"><tr>{["Status","Mov.","Data","Descrição/Categoria","Categoria","Valor","Pagamento","Parcelas","Responsável"].map(h=><th key={h} className="p-2 text-left font-medium">{h}</th>)}</tr></thead>
-          <tbody>{drafts.map((d,i)=><tr key={i} className={duplicateKeys[i] || (mode === "custo" && !d.descricao) || !d.valor_total || !(d.data_compra || d.data_recebimento) ? "bg-overdue/10" : "border-t border-border"}>
+          <tbody>{editedDrafts.map((d,i)=><tr key={i} className={duplicateKeys[i] || (mode === "custo" && !d.descricao) || !d.valor_total || !(d.data_compra || d.data_recebimento) ? "bg-overdue/10" : "border-t border-border"}>
             <td className="p-2">{duplicateKeys[i] ? <span className="text-overdue">Duplicado</span> : ((mode === "custo" && !d.descricao) || !d.valor_total || !(d.data_compra || d.data_recebimento)) ? <span className="text-overdue">Inválido</span> : <span className="text-paid">OK</span>}</td>
             <td className="p-2">{d.tipo_movimentacao}</td><td className="p-2">{d.data_compra || d.data_recebimento || "—"}</td><td className="p-2">{d.descricao || (mode === "renda" ? d.categoria || d.tipo_renda || "—" : "—")}</td><td className="p-2">{d.categoria || "—"}</td><td className="p-2 font-semibold">{d.valor_total.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</td><td className="p-2">{d.tipo_pagamento || "—"}</td><td className="p-2">{d.numero_parcelas}</td><td className="p-2">{d.responsavel}</td>
           </tr>)}</tbody>
