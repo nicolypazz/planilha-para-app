@@ -98,6 +98,31 @@ export async function setPaid(inst: Inst, pago: boolean, data: string | null, tx
   await syncTxPaid(tx.id, tx.installments.map((i) => i.id === inst.id ? { pago, data_pagamento: pago ? data : null } : i));
 }
 
+export async function setInvoicePaid(methodName: string, dueDate: string, pago: boolean, dataPagamento: string | null, txs: Tx[]) {
+  const targets = txs.flatMap((tx) =>
+    tx.tipo_movimentacao === "Custo" && tx.tipo_pagamento === methodName
+      ? tx.installments.filter((i) => i.data_vencimento === dueDate).map((i) => ({ tx, inst: i }))
+      : []
+  );
+  for (const { inst } of targets) {
+    ok(await supabase.from("installments").update({
+      pago,
+      data_pagamento: pago ? dataPagamento : null,
+      status: statusOf({ ...inst, pago }, "Custo"),
+    }).eq("id", inst.id));
+  }
+  const affected = new Set(targets.map((x) => x.tx.id));
+  for (const id of affected) {
+    const tx = txs.find((t) => t.id === id);
+    if (tx) {
+      const next = tx.installments.map((i) => targets.some((x) => x.inst.id === i.id)
+        ? { ...i, pago, data_pagamento: pago ? dataPagamento : null }
+        : i);
+      await syncTxPaid(id, next);
+    }
+  }
+}
+
 export async function deleteTransaction(id: string) { ok(await supabase.from("transactions").delete().eq("id", id)); }
 
 /** Ao mudar fechamento/vencimento de uma forma de pagamento, recalcula as parcelas das compras dela. */
