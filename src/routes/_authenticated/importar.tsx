@@ -280,9 +280,7 @@ function Page() {
       <div><h1 className="font-display text-3xl font-bold">Importar</h1><p className="text-sm text-muted-foreground">Importe vários lançamentos, revise os dados e confirme tudo de uma vez.</p></div>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => downloadModel("renda", "xlsx")}><Download />Baixar Modelo de Renda (.xlsx)</Button>
-        <Button variant="outline" onClick={() => downloadModel("renda", "csv")}><Download />Renda (.csv)</Button>
         <Button variant="outline" onClick={() => downloadModel("custo", "xlsx")}><Download />Baixar Modelo de Custos (.xlsx)</Button>
-        <Button variant="outline" onClick={() => downloadModel("custo", "csv")}><Download />Custos (.csv)</Button>
       </div>
     </div>
 
@@ -321,7 +319,7 @@ function Page() {
       <div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-highlight"/><h2 className="font-display font-semibold">Extrato bancário com IA</h2></div>
       <p className="text-sm text-muted-foreground">Envie o PDF diretamente ou cole o texto. Saldos são filtrados e os lançamentos ficam em prévia antes de qualquer gravação.</p>
       <input id="statement-pdf" type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => e.target.files?.[0] && analyzePdf(e.target.files[0])}/>
-      <label htmlFor="statement-pdf" className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border p-4 hover:bg-muted/50"><Upload className="h-5 w-5 text-highlight"/><span><b>Selecionar PDF do extrato</b><span className="ml-2 text-xs text-muted-foreground">{pdfName || "PDF bancário com texto"}</span></span></label>
+      <label htmlFor="statement-pdf" className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border p-4 hover:bg-muted/50"><Upload className="h-5 w-5 text-highlight"/><span><b>📄 Selecionar PDF do extrato</b><span className="ml-2 text-xs text-muted-foreground">{pdfName || "PDF bancário com texto"}</span></span></label>
       <Textarea value={extrato} onChange={e => setExtrato(e.target.value)} placeholder="Ou cole aqui o texto do extrato bancário..." className="min-h-40 font-mono text-xs"/>
       <Button onClick={() => analyzeStatement(extrato)} disabled={aiBusy || !extrato.trim()}>{aiBusy ? "Analisando…" : "Extrair e categorizar com IA"} <Sparkles /></Button>
     </section>}
