@@ -325,9 +325,9 @@ function Page() {
             "EXTRATO SANITIZADO PARA ANÁLISE:\n" +
             cleaned +
             "\n\nREGRAS: ignore SALDO DO DIA, SALDO ANTERIOR e saldo acumulado. Negativo = Custo; positivo = Renda. Converta 2.449,64 e -174,29 corretamente. NATASHA na descrição = Natasha; NICOLI = Nicoli. Retorne somente movimentações reais.",
-          categories: data.categories.map((x) => x.nome),
-          payment_methods: data.methods.map((x) => x.nome),
-          responsaveis: data.responsaveis.map((x) => x.nome),
+          categories: (data?.categories ?? []).map((x) => x.nome),
+          payment_methods: (data?.methods ?? []).map((x) => x.nome),
+          responsaveis: (data?.responsaveis ?? []).map((x) => x.nome),
         },
       });
 
