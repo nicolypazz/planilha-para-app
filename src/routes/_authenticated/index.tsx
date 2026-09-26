@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowDownCircle, CheckCircle2, Clock, Coins, CreditCard, Plus, Wallet, Check, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, CheckCircle2, Clock, Coins, CreditCard, Plus, Check, type LucideIcon } from "lucide-react";
+import logoAsset from "@/assets/nn-financas.jpg.asset.json";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, defaultPeriod, inRange, range, type Period } from "@/components/PeriodFilter";
 import { brl, fmtDate, mesLabel, setPaid, txDate, txLabel, useFin, useRefresh, type Row } from "@/lib/data";
@@ -104,7 +105,7 @@ function Dashboard() {
     <div className="mx-auto max-w-7xl space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="glow grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground"><Wallet className="h-6 w-6" /></div>
+          <img src={logoAsset.url} alt="N e N" className="glow h-12 w-12 rounded-2xl object-cover" />
           <div>
             <h1 className="font-display text-2xl font-bold md:text-3xl">Controle de Financeiro</h1>
             <p className="text-sm text-muted-foreground">Organização hoje, tranquilidade amanhã ✨</p>
