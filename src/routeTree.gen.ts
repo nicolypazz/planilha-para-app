@@ -13,9 +13,9 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedTransacoesRouteImport } from './routes/_authenticated/transacoes'
-import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedFaturasRouteImport } from './routes/_authenticated/faturas'
+import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
+import { Route as AuthenticatedTransacoesRouteImport } from './routes/_authenticated/transacoes'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -37,11 +37,6 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedTransacoesRoute = AuthenticatedTransacoesRouteImport.update({
-  id: '/transacoes',
-  path: '/transacoes',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedFaturasRoute = AuthenticatedFaturasRouteImport.update({
   id: '/faturas',
   path: '/faturas',
@@ -52,46 +47,53 @@ const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
   path: '/importar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTransacoesRoute = AuthenticatedTransacoesRouteImport.update({
+  id: '/transacoes',
+  path: '/transacoes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/transacoes': typeof AuthenticatedTransacoesRoute
-  '/importar': typeof AuthenticatedImportarRoute
   '/faturas': typeof AuthenticatedFaturasRoute
+  '/importar': typeof AuthenticatedImportarRoute
+  '/transacoes': typeof AuthenticatedTransacoesRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/transacoes': typeof AuthenticatedTransacoesRoute
-  '/importar': typeof AuthenticatedImportarRoute
-  '/': typeof AuthenticatedIndexRoute
   '/faturas': typeof AuthenticatedFaturasRoute
+  '/importar': typeof AuthenticatedImportarRoute
+  '/transacoes': typeof AuthenticatedTransacoesRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/_authenticated/transacoes': typeof AuthenticatedTransacoesRoute
-  '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/faturas': typeof AuthenticatedFaturasRoute
+  '/_authenticated/importar': typeof AuthenticatedImportarRoute
+  '/_authenticated/transacoes': typeof AuthenticatedTransacoesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/configuracoes' | '/transacoes' | '/importar' | '/faturas'
+  fullPaths:
+    '/' | '/auth' | '/configuracoes' | '/faturas' | '/importar' | '/transacoes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/configuracoes' | '/transacoes' | '/importar' | '/faturas' | '/'
+  to:
+    '/auth' | '/configuracoes' | '/faturas' | '/importar' | '/transacoes' | '/'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/configuracoes'
-    | '/_authenticated/transacoes'
-    | '/_authenticated/importar'
     | '/_authenticated/faturas'
+    | '/_authenticated/importar'
+    | '/_authenticated/transacoes'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
@@ -130,11 +132,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/transacoes': {
-      id: '/_authenticated/transacoes'
-      path: '/transacoes'
-      fullPath: '/transacoes'
-      preLoaderRoute: typeof AuthenticatedTransacoesRouteImport
+    '/_authenticated/faturas': {
+      id: '/_authenticated/faturas'
+      path: '/faturas'
+      fullPath: '/faturas'
+      preLoaderRoute: typeof AuthenticatedFaturasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/importar': {
@@ -144,11 +146,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImportarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/faturas': {
-      id: '/_authenticated/faturas'
-      path: '/faturas'
-      fullPath: '/faturas'
-      preLoaderRoute: typeof AuthenticatedFaturasRouteImport
+    '/_authenticated/transacoes': {
+      id: '/_authenticated/transacoes'
+      path: '/transacoes'
+      fullPath: '/transacoes'
+      preLoaderRoute: typeof AuthenticatedTransacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -156,17 +158,17 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
-  AuthenticatedTransacoesRoute: typeof AuthenticatedTransacoesRoute
-  AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedFaturasRoute: typeof AuthenticatedFaturasRoute
+  AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
+  AuthenticatedTransacoesRoute: typeof AuthenticatedTransacoesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
-  AuthenticatedTransacoesRoute: AuthenticatedTransacoesRoute,
-  AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedFaturasRoute: AuthenticatedFaturasRoute,
+  AuthenticatedImportarRoute: AuthenticatedImportarRoute,
+  AuthenticatedTransacoesRoute: AuthenticatedTransacoesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 

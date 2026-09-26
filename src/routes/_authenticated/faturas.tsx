@@ -48,7 +48,7 @@ function Page() {
     const paid = inv.insts.every(({ inst }) => inst.pago);
     setSaving(key);
     try {
-      await setInvoicePaid(inv.method, inv.dueDate, !paid, !paid ? todayIso() : null, data.txs);
+      await setInvoicePaid(inv.method, inv.dueDate, !paid, !paid ? todayIso() : null, data?.txs ?? []);
       await refresh();
       toast.success(paid ? "Pagamento da fatura desfeito" : "Fatura marcada como paga");
     } catch (e) { toast.error((e as Error).message); }

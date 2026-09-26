@@ -118,7 +118,7 @@ function ListBox({ title, table, items, run }: { title: string; table: ListTable
   const rename = async (it: Named, nome: string) => {
     if (!nome || nome === it.nome) return;
     if (await run(() => supabase.from(table).update({ nome }).eq("id", it.id), "Nome atualizado")) {
-      await supabase.from("transactions").update({ [txColumn[table]]: nome }).eq(txColumn[table], it.nome);
+      await supabase.from("transactions").update({ [txColumn[table]]: nome } as never).eq(txColumn[table], it.nome);
     }
   };
   return (
