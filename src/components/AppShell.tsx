@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ListChecks, Download, Settings, Wallet, Plus, LogOut, CreditCard } from "lucide-react";
+import { LayoutDashboard, ListChecks, Download, Settings, Plus, LogOut, CreditCard } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { openLancamento } from "@/lib/ui";
+import logoAsset from "@/assets/nn-financas.jpg.asset.json";
 import { LancamentoDialog } from "./LancamentoDialog";
 
 const nav = [
@@ -20,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen md:flex">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-1 border-r border-border bg-muted/70 p-4 backdrop-blur md:flex">
         <div className="mb-6 flex items-center gap-2 px-2">
-          <div className="glow grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><Wallet className="h-5 w-5" /></div>
+          <img src={logoAsset.url} alt="N e N" className="glow h-10 w-10 rounded-xl object-cover" />
           <div className="font-display text-sm font-bold leading-tight">Controle<br />de Financeiro</div>
         </div>
         <button onClick={() => openLancamento()} className="glow mb-3 flex items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground">
