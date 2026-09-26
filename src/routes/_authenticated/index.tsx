@@ -105,7 +105,7 @@ function Dashboard() {
     <div className="mx-auto max-w-7xl space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="glow grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground"><Wallet className="h-6 w-6" /></div>
+          <img src={logoAsset.url} alt="N e N" className="glow h-12 w-12 rounded-2xl object-cover" />
           <div>
             <h1 className="font-display text-2xl font-bold md:text-3xl">Controle de Financeiro</h1>
             <p className="text-sm text-muted-foreground">Organização hoje, tranquilidade amanhã ✨</p>
