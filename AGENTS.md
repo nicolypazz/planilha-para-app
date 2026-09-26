@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep the uploaded N&N artwork as the shared in-app brand image and derive all install icons from it, so browser and home-screen branding stay consistent.

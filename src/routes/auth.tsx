@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import logoAsset from "@/assets/nn-financas.jpg.asset.json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,7 +51,7 @@ function AuthPage() {
     <div className="grid min-h-screen place-items-center p-4">
       <div className="panel w-full max-w-sm space-y-5 p-6">
         <div className="flex items-center gap-3">
-          <div className="glow grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground"><Wallet className="h-5 w-5" /></div>
+          <img src={logoAsset.url} alt="N e N" className="glow h-11 w-11 rounded-xl object-cover" />
           <div><h1 className="font-display text-lg font-bold">Controle de Financeiro</h1><p className="text-xs text-muted-foreground">Organização hoje, tranquilidade amanhã ✨</p></div>
         </div>
         <Button variant="secondary" className="w-full" onClick={google}>Continuar com Google</Button>
