@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowDownCircle, CheckCircle2, Clock, Coins, CreditCard, Plus, Wallet, Check, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, CheckCircle2, Clock, Coins, CreditCard, Plus, Check, type LucideIcon } from "lucide-react";
+import logoAsset from "@/assets/nn-financas.jpg.asset.json";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, defaultPeriod, inRange, range, type Period } from "@/components/PeriodFilter";
 import { brl, fmtDate, mesLabel, setPaid, txDate, txLabel, useFin, useRefresh, type Row } from "@/lib/data";
