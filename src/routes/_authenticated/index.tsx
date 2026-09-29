@@ -98,7 +98,9 @@ function Dashboard() {
   const saldo = calc.renda - calc.custo;
   const hoje = todayIso();
   const limite = (() => { const d = new Date(hoje + "T12:00:00"); d.setDate(d.getDate() + 5); return d.toISOString().slice(0, 10); })();
-  const proximos = data.rows.filter((x) => x.mov === "Custo" && (resp === "all" || x.tx.responsavel === resp) && x.status === "Pendente" && x.inst.data_vencimento >= hoje && x.inst.data_vencimento <= limite).sort((a, b) => a.inst.data_vencimento.localeCompare(b.inst.data_vencimento));
+  const proximos = data.rows.filter((x) => x.mov === "Custo" && (resp === "all" || x.tx.responsavel === resp) && x.status === "Pendente" && x.inst.data_vencimento >= hoje && x.inst.data_vencimento <= limite);
+  const atrasados = data.rows.filter((x) => x.mov === "Custo" && (resp === "all" || x.tx.responsavel === resp) && x.status === "Atrasado");
+  const alertasVencimento = [...atrasados, ...proximos].sort((a, b) => a.inst.data_vencimento.localeCompare(b.inst.data_vencimento));
   const marcarPago = async (row: Row) => { setPayingId(row.inst.id); try { await setPaid(row.inst, true, hoje, row.tx); await refresh(); } finally { setPayingId(null); } };
 
   return (
@@ -125,20 +127,21 @@ function Dashboard() {
         </div>
       </div>
 
-      {proximos.length > 0 && (
-        <section className="panel overflow-hidden border-amber-500/40 bg-amber-500/5">
+      {alertasVencimento.length > 0 && (
+        <section className={`panel overflow-hidden ${atrasados.length > 0 ? "border-red-500/50 bg-red-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-500" /><div><h2 className="font-display font-semibold">Pagamentos Próximos do Vencimento</h2><p className="text-xs text-muted-foreground">Pendentes para hoje e os próximos 5 dias.</p></div></div>
-            <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-600">{proximos.length} parcela{proximos.length === 1 ? "" : "s"}</span>
+            <div className="flex items-center gap-2"><AlertTriangle className={`h-5 w-5 ${atrasados.length > 0 ? "text-red-500" : "text-amber-500"}`} /><div><h2 className="font-display font-semibold">{atrasados.length > 0 ? "Atenção aos vencimentos" : "Pagamentos Próximos do Vencimento"}</h2><p className="text-xs text-muted-foreground">{atrasados.length > 0 ? "Existem pagamentos atrasados e/ou próximos do vencimento." : "Pendentes para hoje e os próximos 5 dias."}</p></div></div>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${atrasados.length > 0 ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>{alertasVencimento.length} parcela{alertasVencimento.length === 1 ? "" : "s"}</span>
           </div>
           <div className="divide-y divide-border">
-            {proximos.map((x) => {
+            {alertasVencimento.map((x) => {
               const dias = Math.round((new Date(x.inst.data_vencimento + "T12:00:00").getTime() - new Date(hoje + "T12:00:00").getTime()) / 86400000);
-              const urgente = dias <= 1;
+              const atrasado = x.status === "Atrasado";
+              const urgente = !atrasado && dias <= 1;
               return <div key={x.inst.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgente ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}><Clock className="h-4 w-4" /></div>
+                <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${atrasado || urgente ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>{atrasado ? <AlertTriangle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}</div>
                 <div className="min-w-40 flex-1"><div className="font-semibold">{txLabel(x.tx)}</div><div className="text-xs text-muted-foreground">{x.tx.responsavel} · {x.tx.tipo_pagamento || "—"} · parcela {x.inst.numero_parcela}/{x.inst.total_parcelas}</div></div>
-                <div className="text-right"><div className="font-bold text-expense">{brl(x.valor)}</div><div className={`text-xs font-semibold ${urgente ? "text-red-500" : "text-amber-600"}`}>{dias === 0 ? "vence hoje" : dias === 1 ? "vence amanhã" : "vence em " + dias + " dias"} · {fmtDate(x.inst.data_vencimento)}</div></div>
+                <div className="text-right"><div className="font-bold text-expense">{brl(x.valor)}</div><div className={`text-xs font-semibold ${atrasado || urgente ? "text-red-500" : "text-amber-600"}`}>{atrasado ? `atrasado desde ${fmtDate(x.inst.data_vencimento)}` : dias === 0 ? "vence hoje" : dias === 1 ? "vence amanhã" : "vence em " + dias + " dias"} · {fmtDate(x.inst.data_vencimento)}</div></div>
                 <button disabled={payingId === x.inst.id} onClick={() => marcarPago(x)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"><Check className="h-4 w-4" />{payingId === x.inst.id ? "Salvando…" : "Marcar como Pago"}</button>
               </div>;
             })}
