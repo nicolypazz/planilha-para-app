@@ -51,7 +51,7 @@ export const todayIso = (now = new Date()) => `${now.getFullYear()}-${pad(now.ge
 export function firstDue(dataCompra: string, method?: MethodRule | null): string {
   if (method?.utiliza_fechamento && method.dia_fechamento && method.dia_vencimento) {
     const { y, m0, d } = parseIso(dataCompra);
-    const offset = d > method.dia_fechamento ? 1 : 0;
+    const offset = d >= method.dia_fechamento ? 1 : 0;
     return ymd(y, m0 + offset, method.dia_vencimento);
   }
   return dataCompra;
@@ -81,7 +81,7 @@ export function computeInstallments(tx: TxCalcInput, method?: MethodRule | null)
       venc = addMonths(tx.primeiro_vencimento, k - 1);
     } else if (card) {
       const { y, m0, d } = parseIso(tx.data_compra);
-      const offset = d > card.dia_fechamento! ? 1 : 0;
+      const offset = d >= card.dia_fechamento! ? 1 : 0;
       venc = ymd(y, m0 + offset + k - 1, card.dia_vencimento!);
     } else venc = addMonths(tx.data_compra, k - 1);
     out.push(mk(k, n, (k === n ? lastC : base) / 100, venc));
