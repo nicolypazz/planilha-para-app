@@ -63,8 +63,14 @@ export interface PaidInfo { parcelasPagas: number; dataPagamento: string | null 
 const findMethod = (methods: Method[], nome: string | null) => methods.find((m) => m.nome === nome) ?? null;
 
 function buildInstallments(txId: string, d: TxDraft, methods: Method[], old: Inst[], paid?: PaidInfo) {
-  const calc = computeInstallments(d, findMethod(methods, d.tipo_pagamento));
+  const method = findMethod(methods, d.tipo_pagamento);
+  const calc = computeInstallments(d, method);
   let merged = mergePaid(calc, old);
+  // Custos pagos no ato (Pix, Débito, Dinheiro ou qualquer forma sem fechamento)
+  // entram como pagos automaticamente na data da compra.
+  if (d.tipo_movimentacao === "Custo" && !method?.utiliza_fechamento) {
+    merged = merged.map((i) => ({ ...i, pago: true, data_pagamento: d.data_compra ?? i.data_vencimento }));
+  }
   if (paid && paid.parcelasPagas > 0) merged = merged.map((i) => i.numero_parcela <= paid.parcelasPagas
     ? { ...i, pago: true, data_pagamento: paid.dataPagamento ?? i.data_vencimento } : i);
   return merged.map((i) => ({ ...i, transaction_id: txId, status: statusOf(i, d.tipo_movimentacao) }));
@@ -134,6 +140,18 @@ export async function recalcMethod(nome: string, methods: Method[], txs: Tx[]) {
     const insts = buildInstallments(tx.id, d, methods, tx.installments);
     ok(await supabase.from("installments").delete().eq("transaction_id", tx.id));
     ok(await supabase.from("installments").insert(insts));
+    await syncTxPaid(tx.id, insts);
+  }
+}
+
+/** Recalcula todo o histórico de custos e aplica as regras atuais de vencimento/pagamento. */
+export async function recalcAllCosts(methods: Method[], txs: Tx[]) {
+  for (const tx of txs.filter((t) => t.tipo_movimentacao === "Custo")) {
+    const d = { ...tx, tipo_movimentacao: "Custo" as Mov, valor_total: Number(tx.valor_total) };
+    const insts = buildInstallments(tx.id, d, methods, tx.installments);
+    ok(await supabase.from("installments").delete().eq("transaction_id", tx.id));
+    ok(await supabase.from("installments").insert(insts));
+    await syncTxPaid(tx.id, insts);
   }
 }
 
