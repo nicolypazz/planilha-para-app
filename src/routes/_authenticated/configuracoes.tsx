@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { recalcMethod, useFin, useRefresh, type Method, type Named } from "@/lib/data";
+import { recalcAllCosts, recalcMethod, useFin, useRefresh, type Method, type Named } from "@/lib/data";
 import { exportConfigAndTransactions } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -54,6 +54,16 @@ function Page() {
     }
   }
 
+  async function recalcHistorico() {
+    try {
+      await recalcAllCosts(data.methods, data.txs);
+      await refresh();
+      toast.success("Compras antigas recalculadas e pagamentos à vista ajustados");
+    } catch (err) {
+      toast.error(`Não foi possível recalcular: ${(err as Error).message}`);
+    }
+  }
+
   async function addMethod(e: React.FormEvent) {
     e.preventDefault();
     const nome = novo.nome.trim(); if (!nome) return;
@@ -68,7 +78,8 @@ function Page() {
     <div className="mx-auto max-w-4xl space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div><h1 className="font-display text-3xl font-bold">Configurações</h1><p className="text-sm text-muted-foreground">Backup completo dos dados financeiros e das configurações.</p></div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={recalcHistorico}><RefreshCw className="mr-2 h-4 w-4" />Recalcular compras antigas</Button>
           <Button variant="outline" onClick={() => { exportConfigAndTransactions(data.txs, data, "csv"); toast.success("Backup CSV baixado"); }}><Download className="mr-2 h-4 w-4" />Backup CSV</Button>
           <Button variant="outline" onClick={() => { exportConfigAndTransactions(data.txs, data, "xlsx"); toast.success("Backup Excel baixado"); }}><Download className="mr-2 h-4 w-4" />Backup Excel</Button>
         </div>
