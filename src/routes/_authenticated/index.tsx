@@ -68,13 +68,21 @@ function Dashboard() {
       pag: sumBy(custos, (x) => x.tx.tipo_pagamento || "—"),
       natasha: sumBy(
         data.rows.filter((x) => {
-          if (x.mov !== "Renda") return false;
+          if (x.mov !== "Renda" || x.tx.tipo_renda === "Fixa") return false;
           const resp = String(x.tx.responsavel ?? "").trim().toLowerCase();
           const dataRenda = (x.tx.data_recebimento ?? x.tx.data_compra ?? "").slice(0, 7);
           const dentroDoPeriodo = dataRenda >= r[0] && dataRenda <= r[1];
           return dentroDoPeriodo && resp === "natasha";
         }),
         (x) => x.tx.descricao?.trim() || x.tx.categoria?.trim() || x.tx.tipo_renda?.trim() || "Outros"
+      ),
+      natashaTotal: total(
+        data.rows.filter((x) => {
+          if (x.mov !== "Renda" || x.tx.tipo_renda === "Fixa") return false;
+          const resp = String(x.tx.responsavel ?? "").trim().toLowerCase();
+          const dataRenda = (x.tx.data_recebimento ?? x.tx.data_compra ?? "").slice(0, 7);
+          return dataRenda >= r[0] && dataRenda <= r[1] && resp === "natasha";
+        })
       ),
       porResp: data.responsaveis.map((u) => {
         const rs = rendas.filter((x) => x.tx.responsavel === u.nome);
@@ -195,6 +203,12 @@ function Dashboard() {
               </BarChart>
             </ResponsiveContainer>
           )}
+          <div className="mt-3 border-t border-border pt-3">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Total de renda variável</span>
+              <span className="text-base font-bold text-income">{brl(calc.natashaTotal)}</span>
+            </div>
+          </div>
         </Panel>
       </div>
 
