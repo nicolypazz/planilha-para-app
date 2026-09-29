@@ -63,7 +63,7 @@ function Dashboard() {
       renda: total(rendas), custo: total(custos),
       fixa: total(rendas.filter((x) => x.tx.tipo_renda === "Fixa")), variavel: total(rendas.filter((x) => x.tx.tipo_renda !== "Fixa")),
       pago: total(custos.filter((x) => x.status === "Pago")), pend: total(custos.filter((x) => x.status === "Pendente")), atras: total(custos.filter((x) => x.status === "Atrasado")),
-      cat: sumBy(custos, (x) => x.tx.categoria || "Sem categoria"),
+      cat: sumBy(custos, (x) => x.tx.categoria || "Sem categoria").slice(0, 10),
       quinz: sumBy(custos, (x) => x.inst.quinzena).sort((a, b) => a.name.localeCompare(b.name)),
       pag: sumBy(custos, (x) => x.tx.tipo_pagamento || "—"),
       natasha: sumBy(
