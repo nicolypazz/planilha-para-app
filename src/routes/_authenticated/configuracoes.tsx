@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Download, Plus, RefreshCw } from "lucide-react";
+import { Download, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,6 +111,7 @@ function Page() {
         </form>
         <p className="text-xs text-muted-foreground">Deixe fechamento e vencimento em branco para formas sem fatura.</p>
       </Box>
+      <FixedCostsBox data={data} refresh={refresh} />
       <ListBox title="Categorias de gasto" table="categories" items={data.categories} run={run} />
       <ListBox title="Responsáveis" table="responsible_users" items={data.responsaveis} run={run} />
       <ListBox title="Fontes de renda (sugestões)" table="income_sources" items={data.sources} run={run} />
@@ -145,6 +146,118 @@ function ListBox({ title, table, items, run }: { title: string; table: ListTable
       <form className="flex gap-2" onSubmit={async (e) => { e.preventDefault(); const n = v.trim(); if (n && await run(() => supabase.from(table).insert({ nome: n }), "Adicionado")) setV(""); }}>
         <Input value={v} onChange={(e) => setV(e.target.value)} placeholder="Adicionar…" /><Button type="submit" size="icon" aria-label="Adicionar"><Plus className="h-4 w-4" /></Button>
       </form>
+    </Box>
+  );
+}
+
+
+function FixedCostsBox({ data, refresh }: { data: any; refresh: () => Promise<unknown> }) {
+  const client = supabase as any;
+  const empty = { nome: "", descricao: "", categoria: "", valor: "", tipo_pagamento: "", dia: "1", responsavel: "", periodicidade: "Mensal", mes_anual: "" };
+  const [form, setForm] = useState(empty);
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    const { data: rows, error } = await client.from("fixed_costs").select("*").order("ativo", { ascending: false }).order("dia");
+    if (!error) setItems(rows ?? []);
+    setLoading(false);
+  };
+
+  useState(() => { void load(); });
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.nome.trim() || !form.responsavel || !form.tipo_pagamento || !form.valor || !form.dia) {
+      toast.error("Preencha nome, valor, forma de pagamento, dia e responsável.");
+      return;
+    }
+    const { error } = await client.from("fixed_costs").insert({
+      nome: form.nome.trim(),
+      descricao: form.descricao.trim() || form.nome.trim(),
+      categoria: form.categoria || null,
+      valor: Number(form.valor),
+      tipo_pagamento: form.tipo_pagamento,
+      dia: Number(form.dia),
+      responsavel: form.responsavel,
+      periodicidade: "Mensal",
+      mes_anual: null,
+      ativo: true,
+    });
+    if (error) { toast.error(error.message); return; }
+    setForm(empty);
+    await load();
+    await refresh();
+    toast.success("Custo fixo cadastrado");
+  };
+
+  const patch = async (id: string, values: Record<string, unknown>) => {
+    const { error } = await client.from("fixed_costs").update(values).eq("id", id);
+    if (error) toast.error(error.message);
+    else { await load(); await refresh(); }
+  };
+
+  const remove = async (id: string) => {
+    if (!window.confirm("Excluir este custo fixo? Os lançamentos históricos não serão apagados.")) return;
+    const { error } = await client.from("fixed_costs").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { await load(); await refresh(); toast.success("Custo fixo excluído"); }
+  };
+
+  const activeMethods = data.methods.filter((m: any) => m.ativo);
+  const activeCats = data.categories.filter((x: any) => x.ativo);
+  const activeResp = data.responsaveis.filter((x: any) => x.ativo);
+
+  return (
+    <Box title="Custos Fixos" hint="O aplicativo cria automaticamente o custo mensal no início do mês. Alterações aqui valem para os próximos lançamentos e não alteram o histórico.">
+      <form onSubmit={save} className="grid gap-2 md:grid-cols-6">
+        <Input placeholder="Nome (ex.: Aluguel)" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+        <Input placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
+        <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })}>
+          <option value="">Categoria</option>
+          {activeCats.map((x: any) => <option key={x.id} value={x.nome}>{x.nome}</option>)}
+        </select>
+        <Input type="number" min="0" step="0.01" placeholder="Valor" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} />
+        <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.tipo_pagamento} onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}>
+          <option value="">Forma de pagamento</option>
+          {activeMethods.map((x: any) => <option key={x.id} value={x.nome}>{x.nome}</option>)}
+        </select>
+        <Input type="number" min="1" max="31" placeholder="Dia" value={form.dia} onChange={(e) => setForm({ ...form, dia: e.target.value })} />
+        <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })}>
+          <option value="">Responsável</option>
+          {activeResp.map((x: any) => <option key={x.id} value={x.nome}>{x.nome}</option>)}
+        </select>
+        <div className="md:col-span-5 flex items-center text-xs text-muted-foreground">Periodicidade: Mensal (estrutura já preparada para Anual)</div>
+        <Button type="submit"><Plus className="mr-2 h-4 w-4" />Adicionar custo fixo</Button>
+      </form>
+
+      {loading ? <p className="text-sm text-muted-foreground">Carregando custos fixos…</p> : items.length === 0 ? (
+        <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">Nenhum custo fixo cadastrado.</p>
+      ) : (
+        <div className="-mx-4 overflow-x-auto px-4">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="text-left text-xs text-muted-foreground">
+              <tr><th className="py-2">Custo</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Pagamento</th><th>Dia</th><th>Responsável</th><th>Ativo</th><th></th></tr>
+            </thead>
+            <tbody>
+              {items.map((it) => (
+                <tr key={it.id} className={it.ativo ? "border-t border-border" : "border-t border-border opacity-50"}>
+                  <td className="py-2 pr-2"><Input defaultValue={it.nome} className="h-8" onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== it.nome && patch(it.id, { nome: e.target.value.trim() })} /></td>
+                  <td className="pr-2"><Input defaultValue={it.descricao} className="h-8" onBlur={(e) => e.target.value.trim() !== it.descricao && patch(it.id, { descricao: e.target.value.trim() })} /></td>
+                  <td className="pr-2"><select className="h-8 rounded-md border border-input bg-background px-2 text-xs" defaultValue={it.categoria ?? ""} onChange={(e) => patch(it.id, { categoria: e.target.value || null })}><option value="">—</option>{activeCats.map((x: any) => <option key={x.id} value={x.nome}>{x.nome}</option>)}</select></td>
+                  <td className="pr-2"><Input type="number" min="0" step="0.01" defaultValue={it.valor} className="h-8 w-24" onBlur={(e) => { const v = Number(e.target.value); if (v >= 0 && v !== Number(it.valor)) patch(it.id, { valor: v }); }} /></td>
+                  <td className="pr-2"><select className="h-8 rounded-md border border-input bg-background px-2 text-xs" defaultValue={it.tipo_pagamento ?? ""} onChange={(e) => patch(it.id, { tipo_pagamento: e.target.value })}>{activeMethods.map((x: any) => <option key={x.id} value={x.nome}>{x.nome}</option>)}</select></td>
+                  <td className="pr-2"><Input type="number" min="1" max="31" defaultValue={it.dia} className="h-8 w-16" onBlur={(e) => { const v = Number(e.target.value); if (v >= 1 && v <= 31 && v !== Number(it.dia)) patch(it.id, { dia: v }); }} /></td>
+                  <td className="pr-2"><select className="h-8 rounded-md border border-input bg-background px-2 text-xs" defaultValue={it.responsavel} onChange={(e) => patch(it.id, { responsavel: e.target.value })}>{activeResp.map((x: any) => <option key={x.id} value={x.nome}>{x.nome}</option>)}</select></td>
+                  <td><Switch checked={it.ativo} onCheckedChange={(c) => patch(it.id, { ativo: c })} /></td>
+                  <td><Button variant="ghost" size="icon" onClick={() => remove(it.id)} aria-label="Excluir custo fixo"><Trash2 className="h-4 w-4" /></Button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Box>
   );
 }
