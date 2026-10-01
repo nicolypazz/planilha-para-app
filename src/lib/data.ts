@@ -33,7 +33,15 @@ async function fetchAll(): Promise<FinData> {
     const mov = tx.tipo_movimentacao as Mov;
     rows.push({ inst, tx, mov, valor: Number(inst.valor_parcela), status: statusOf(inst, mov, today) });
   }
-  return { methods: ok(m), categories: ok(c), responsaveis: ok(r), sources: ok(s), txs, rows };
+  await ensureFixedCosts(ok(m));
+  const fresh = ok(await supabase.from("transactions").select("*, installments(*)").order("created_at", { ascending: false }).limit(5000));
+  const freshTxs = (fresh as Tx[]).map((x) => ({ ...x, valor_total: Number(x.valor_total), installments: [...x.installments].sort((a, b) => a.numero_parcela - b.numero_parcela) }));
+  rows.length = 0;
+  for (const tx of freshTxs) for (const inst of tx.installments) {
+    const mov = tx.tipo_movimentacao as Mov;
+    rows.push({ inst, tx, mov, valor: Number(inst.valor_parcela), status: statusOf(inst, mov, today) });
+  }
+  return { methods: ok(m), categories: ok(c), responsaveis: ok(r), sources: ok(s), txs: freshTxs, rows };
 }
 
 export const finKey = ["fin"] as const;
@@ -169,6 +177,78 @@ export async function bulkInsert(items: { draft: TxDraft; paid?: PaidInfo }[], m
 
 export const dupKey = (d: { tipo_movimentacao: string; data_compra: string | null; data_recebimento: string | null; valor_total: number; responsavel: string; descricao: string }) =>
   [d.tipo_movimentacao, d.data_compra ?? d.data_recebimento, Number(d.valor_total).toFixed(2), d.responsavel.toLowerCase(), d.descricao.trim().toLowerCase()].join("|");
+
+
+export type FixedCost = {
+  id: string;
+  nome: string;
+  descricao: string;
+  categoria: string | null;
+  valor: number;
+  tipo_pagamento: string | null;
+  dia: number;
+  responsavel: string;
+  periodicidade: "Mensal" | "Anual";
+  mes_anual: number | null;
+  ativo: boolean;
+};
+
+const fixedCostsClient = supabase as any;
+
+async function ensureFixedCosts(methods: Method[]) {
+  const { data: fixed, error } = await fixedCostsClient.from("fixed_costs").select("*").eq("ativo", true);
+  if (error) return;
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const competencia = `${year}-${String(month).padStart(2, "0")}`;
+  const dueDateForDay = (day: number) => {
+    const lastDay = new Date(year, month, 0).getDate();
+    return `${year}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+  };
+
+  for (const fc of (fixed ?? []) as FixedCost[]) {
+    if (fc.periodicidade !== "Mensal") continue;
+
+    const { data: exists } = await fixedCostsClient
+      .from("transactions")
+      .select("id")
+      .eq("custo_fixo_id", fc.id)
+      .eq("competencia_fixa", competencia)
+      .limit(1);
+    if (exists?.length) continue;
+
+    const draft: TxDraft = {
+      tipo_movimentacao: "Custo",
+      responsavel: fc.responsavel,
+      data_compra: dueDateForDay(fc.dia),
+      data_recebimento: null,
+      descricao: fc.descricao || fc.nome,
+      categoria: fc.categoria,
+      tipo_gasto: "Fixo",
+      tipo_renda: null,
+      valor_total: Number(fc.valor),
+      tipo_pagamento: fc.tipo_pagamento,
+      numero_parcelas: 1,
+    };
+
+    const { data: inserted, error: insertError } = await fixedCostsClient
+      .from("transactions")
+      .insert({ ...txRow(draft), custo_fixo_id: fc.id, competencia_fixa: competencia })
+      .select("id")
+      .single();
+    if (insertError || !inserted?.id) continue;
+
+    const insts = buildInstallments(inserted.id, draft, methods, []);
+    const { error: instError } = await supabase.from("installments").insert(insts);
+    if (instError) {
+      await fixedCostsClient.from("transactions").delete().eq("id", inserted.id);
+    } else {
+      await syncTxPaid(inserted.id, insts);
+    }
+  }
+}
 
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const fmtDate = (s: string | null | undefined) => { if (!s) return "—"; const [y, m, d] = s.split("-"); return `${d}/${m}/${y}`; };
