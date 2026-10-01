@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -165,7 +165,7 @@ function FixedCostsBox({ data, refresh }: { data: any; refresh: () => Promise<un
     setLoading(false);
   };
 
-  useState(() => { void load(); });
+  useEffect(() => { void load(); }, []);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
