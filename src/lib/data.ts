@@ -71,36 +71,6 @@ async function fetchAll(): Promise<FinData> {
     }
   }
 
-  const idsFuturosAVista = freshTxs
-    .filter((tx) =>
-      tx.tipo_movimentacao === "Custo" &&
-      metodosAVista.has(tx.tipo_pagamento ?? "") &&
-      (tx.data_compra ?? "") > hojeAtual &&
-      tx.installments.some((inst) => inst.pago)
-    )
-    .map((tx) => tx.id);
-
-  if (idsFuturosAVista.length) {
-    ok(await supabase.from("installments").update({
-      pago: false,
-      data_pagamento: null,
-      status: "Pendente",
-    }).in("transaction_id", idsFuturosAVista));
-
-    ok(await supabase.from("transactions").update({
-      pago: false,
-      data_pagamento: null,
-    }).in("id", idsFuturosAVista));
-
-    for (const tx of freshTxs) {
-      if (idsFuturosAVista.includes(tx.id)) {
-        tx.pago = false;
-        tx.data_pagamento = null;
-        tx.installments = tx.installments.map((inst) => ({ ...inst, pago: false, data_pagamento: null, status: "Pendente" }));
-      }
-    }
-  }
-
   rows.length = 0;
   for (const tx of freshTxs) for (const inst of tx.installments) {
     const mov = tx.tipo_movimentacao as Mov;
