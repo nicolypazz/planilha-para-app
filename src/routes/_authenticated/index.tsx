@@ -108,7 +108,19 @@ function Dashboard() {
   const limite = (() => { const d = new Date(hoje + "T12:00:00"); d.setDate(d.getDate() + 5); return d.toISOString().slice(0, 10); })();
   const proximos = data.rows.filter((x) => x.mov === "Custo" && (resp === "all" || x.tx.responsavel === resp) && x.status === "Pendente" && x.inst.data_vencimento >= hoje && x.inst.data_vencimento <= limite);
   const atrasados = data.rows.filter((x) => x.mov === "Custo" && (resp === "all" || x.tx.responsavel === resp) && x.status === "Atrasado");
-  const alertasVencimento = [...atrasados, ...proximos].sort((a, b) => a.inst.data_vencimento.localeCompare(b.inst.data_vencimento));
+  const cardAlerts = new Map<string, Row[]>();
+  const individualAlerts: Row[] = [];
+  for (const row of [...atrasados, ...proximos]) {
+    const method = data.methods.find((m) => m.nome === row.tx.tipo_pagamento);
+    if (method?.utiliza_fechamento) {
+      const key = `${row.tx.tipo_pagamento}|${row.inst.data_vencimento}`;
+      cardAlerts.set(key, [...(cardAlerts.get(key) ?? []), row]);
+    } else individualAlerts.push(row);
+  }
+  const alertasVencimento = [
+    ...[...cardAlerts.entries()].map(([key, rows]) => ({ key, card: true as const, rows, dueDate: rows[0]!.inst.data_vencimento, valor: rows.reduce((s, x) => s + x.valor, 0) })),
+    ...individualAlerts.map((row) => ({ key: row.inst.id, card: false as const, row, dueDate: row.inst.data_vencimento, valor: row.valor })),
+  ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const marcarPago = async (row: Row) => { setPayingId(row.inst.id); try { await setPaid(row.inst, true, hoje, row.tx); await refresh(); } finally { setPayingId(null); } };
 
   return (
