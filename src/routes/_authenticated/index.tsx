@@ -154,18 +154,19 @@ function Dashboard() {
             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${atrasados.length > 0 ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>{alertasVencimento.length} parcela{alertasVencimento.length === 1 ? "" : "s"}</span>
           </div>
           <div className="divide-y divide-border">
-            {alertasVencimento.map((x) => {
-              const dias = Math.round((new Date(x.inst.data_vencimento + "T12:00:00").getTime() - new Date(hoje + "T12:00:00").getTime()) / 86400000);
-              const atrasado = x.status === "Atrasado";
+            {alertasVencimento.map((item) => {
+              const dias = Math.round((new Date(item.dueDate + "T12:00:00").getTime() - new Date(hoje + "T12:00:00").getTime()) / 86400000);
+              const atrasado = item.card ? item.rows.some((x) => x.status === "Atrasado") : item.row.status === "Atrasado";
               const urgente = !atrasado && dias <= 1;
-              return <div key={x.inst.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              const titulo = item.card ? item.rows[0]!.tx.tipo_pagamento! : txLabel(item.row.tx);
+              const detalhe = item.card ? `Fatura completa · ${item.rows.length} ${item.rows.length === 1 ? "parcela" : "parcelas"}` : `${item.row.tx.responsavel} · ${item.row.tx.tipo_pagamento || "—"} · parcela ${item.row.inst.numero_parcela}/${item.row.inst.total_parcelas}`;
+              return <div key={item.key} className="flex flex-wrap items-center gap-3 px-4 py-3">
                 <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${atrasado || urgente ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>{atrasado ? <AlertTriangle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}</div>
-                <div className="min-w-40 flex-1"><div className="font-semibold">{txLabel(x.tx)}</div><div className="text-xs text-muted-foreground">{x.tx.responsavel} · {x.tx.tipo_pagamento || "—"} · parcela {x.inst.numero_parcela}/{x.inst.total_parcelas}</div></div>
-                <div className="text-right"><div className="font-bold text-expense">{brl(x.valor)}</div><div className={`text-xs font-semibold ${atrasado || urgente ? "text-red-500" : "text-amber-600"}`}>{atrasado ? `atrasado desde ${fmtDate(x.inst.data_vencimento)}` : dias === 0 ? "vence hoje" : dias === 1 ? "vence amanhã" : "vence em " + dias + " dias"} · {fmtDate(x.inst.data_vencimento)}</div></div>
-                <button disabled={payingId === x.inst.id} onClick={() => marcarPago(x)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"><Check className="h-4 w-4" />{payingId === x.inst.id ? "Salvando…" : "Marcar como Pago"}</button>
+                <div className="min-w-40 flex-1"><div className="font-semibold">{titulo}</div><div className="text-xs text-muted-foreground">{detalhe}</div></div>
+                <div className="text-right"><div className="font-bold text-expense">{brl(item.valor)}</div><div className={`text-xs font-semibold ${atrasado || urgente ? "text-red-500" : "text-amber-600"}`}>{atrasado ? `atrasado desde ${fmtDate(item.dueDate)}` : dias === 0 ? "vence hoje" : dias === 1 ? "vence amanhã" : "vence em " + dias + " dias"} · {fmtDate(item.dueDate)}</div></div>
+                {!item.card && <button disabled={payingId === item.key} onClick={() => marcarPago(item.row)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"><Check className="h-4 w-4" />{payingId === item.key ? "Salvando…" : "Marcar como Pago"}</button>}
               </div>;
-            })}
-          </div>
+            })}          </div>
         </section>
       )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
