@@ -169,7 +169,7 @@ function Dashboard() {
               const atrasado = item.card ? item.rows.some((x) => x.status === "Atrasado") : item.row.status === "Atrasado";
               const urgente = !atrasado && dias <= 1;
               const titulo = item.card ? item.rows[0]!.tx.tipo_pagamento! : txLabel(item.row.tx);
-              const detalhe = item.card ? `Fatura completa · ${item.rows.length} ${item.rows.length === 1 ? "parcela" : "parcelas"}` : `${item.row.tx.responsavel} · ${item.row.tx.tipo_pagamento || "—"} · parcela ${item.row.inst.numero_parcela}/${item.row.inst.total_parcelas}`;
+              const detalhe = item.card ? `Fatura completa · ${new Set(item.rows.map((x) => x.tx.id)).size} ${new Set(item.rows.map((x) => x.tx.id)).size === 1 ? "compra" : "compras"}` : `${item.row.tx.responsavel} · ${item.row.tx.tipo_pagamento || "—"} · parcela ${item.row.inst.numero_parcela}/${item.row.inst.total_parcelas}`;
               return <div key={item.key} className="flex flex-wrap items-center gap-3 px-4 py-3">
                 <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${atrasado || urgente ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>{atrasado ? <AlertTriangle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}</div>
                 <div className="min-w-40 flex-1"><div className="font-semibold">{titulo}</div><div className="text-xs text-muted-foreground">{detalhe}</div></div>
