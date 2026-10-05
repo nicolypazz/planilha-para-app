@@ -118,7 +118,17 @@ function Dashboard() {
     } else individualAlerts.push(row);
   }
   const alertasVencimento = [
-    ...[...cardAlerts.entries()].map(([key, rows]) => ({ key, card: true as const, rows, dueDate: rows[0]!.inst.data_vencimento, valor: rows.reduce((s, x) => s + x.valor, 0) })),
+    ...[...cardAlerts.entries()].map(([key, alertRows]) => {
+      const method = alertRows[0]!.tx.tipo_pagamento;
+      const dueDate = alertRows[0]!.inst.data_vencimento;
+      const invoiceRows = data.rows.filter((row) =>
+        row.mov === "Custo" &&
+        row.tx.tipo_pagamento === method &&
+        row.inst.data_vencimento === dueDate &&
+        (resp === "all" || row.tx.responsavel === resp)
+      );
+      return { key, card: true as const, rows: invoiceRows, dueDate, valor: invoiceRows.reduce((s, x) => s + x.valor, 0) };
+    }),
     ...individualAlerts.map((row) => ({ key: row.inst.id, card: false as const, row, dueDate: row.inst.data_vencimento, valor: row.valor })),
   ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const marcarPago = async (row: Row) => { setPayingId(row.inst.id); try { await setPaid(row.inst, true, hoje, row.tx); await refresh(); } finally { setPayingId(null); } };
