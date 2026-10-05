@@ -36,6 +36,41 @@ async function fetchAll(): Promise<FinData> {
   await ensureFixedCosts(ok(m));
   const fresh = ok(await supabase.from("transactions").select("*, installments(*)").order("created_at", { ascending: false }).limit(5000));
   const freshTxs = (fresh as Tx[]).map((x) => ({ ...x, valor_total: Number(x.valor_total), installments: [...x.installments].sort((a, b) => a.numero_parcela - b.numero_parcela) }));
+
+  // Custos à vista são pagos automaticamente quando a data da compra chega.
+  // Isso também corrige lançamentos futuros que tenham sido salvos anteriormente como pagos.
+  const hojeAtual = todayIso();
+  const metodosAVista = new Set((ok(m) as Method[]).filter((method) => !method.utiliza_fechamento).map((method) => method.nome));
+  const idsParaPagar = freshTxs
+    .filter((tx) =>
+      tx.tipo_movimentacao === "Custo" &&
+      metodosAVista.has(tx.tipo_pagamento ?? "") &&
+      (tx.data_compra ?? "") <= hojeAtual &&
+      tx.installments.some((inst) => !inst.pago)
+    )
+    .map((tx) => tx.id);
+
+  if (idsParaPagar.length) {
+    ok(await supabase.from("installments").update({
+      pago: true,
+      data_pagamento: hojeAtual,
+      status: "Pago",
+    }).in("transaction_id", idsParaPagar).eq("pago", false));
+
+    ok(await supabase.from("transactions").update({
+      pago: true,
+      data_pagamento: hojeAtual,
+    }).in("id", idsParaPagar));
+
+    for (const tx of freshTxs) {
+      if (idsParaPagar.includes(tx.id)) {
+        tx.pago = true;
+        tx.data_pagamento = hojeAtual;
+        tx.installments = tx.installments.map((inst) => ({ ...inst, pago: true, data_pagamento: hojeAtual, status: "Pago" }));
+      }
+    }
+  }
+
   rows.length = 0;
   for (const tx of freshTxs) for (const inst of tx.installments) {
     const mov = tx.tipo_movimentacao as Mov;
@@ -77,7 +112,13 @@ function buildInstallments(txId: string, d: TxDraft, methods: Method[], old: Ins
   // Custos pagos no ato (Pix, Débito, Dinheiro ou qualquer forma sem fechamento)
   // entram como pagos automaticamente na data da compra.
   if (d.tipo_movimentacao === "Custo" && !method?.utiliza_fechamento) {
-    merged = merged.map((i) => ({ ...i, pago: true, data_pagamento: d.data_compra ?? i.data_vencimento }));
+    const hoje = todayIso();
+    const pagoNoDia = (d.data_compra ?? hoje) <= hoje;
+    merged = merged.map((i) => ({
+      ...i,
+      pago: pagoNoDia,
+      data_pagamento: pagoNoDia ? (d.data_compra ?? i.data_vencimento) : null,
+    }));
   }
   if (paid && paid.parcelasPagas > 0) merged = merged.map((i) => i.numero_parcela <= paid.parcelasPagas
     ? { ...i, pago: true, data_pagamento: paid.dataPagamento ?? i.data_vencimento } : i);
